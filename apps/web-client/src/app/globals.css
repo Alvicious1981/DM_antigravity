@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+/* ============================================================
+   DUNGEON CORTEX — Dark Fantasy Design System (§7, §2.3)
+   "The interface IS the game world."
+   ============================================================ */
+
+:root {
+  /* Abyss Palette — Visceral Dark Fantasy */
+  --color-abyss:    #0d0d0f;
+  --color-obsidian: #1a1a1d;
+  --color-iron:     #2a2a2e;
+  --color-ash:      #8a8a8e;
+  --color-bone:     #e0ddd5;
+  --color-gold:     #c5a059;
+  --color-blood:    #8b1a1a;
+  --color-arcane:   #4a6fa5;
+  --color-venom:    #2d5a27;
+
+  /* Semantic mappings */
+  --background: var(--color-abyss);
+  --foreground: var(--color-bone);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  /* Expose palette to Tailwind utilities */
+  --color-abyss:    #0d0d0f;
+  --color-obsidian: #1a1a1d;
+  --color-iron:     #2a2a2e;
+  --color-ash:      #8a8a8e;
+  --color-bone:     #e0ddd5;
+  --color-gold:     #c5a059;
+  --color-blood:    #8b1a1a;
+  --color-arcane:   #4a6fa5;
+  --color-venom:    #2d5a27;
+
+  /* Typography — Manifesto §7.2 */
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-cinzel);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* Global base styles */
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Diegetic scrollbar — match the grimoire aesthetic */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-abyss);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-iron);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gold);
+}
+
+/* Selection — gold accent */
+::selection {
+  background: color-mix(in srgb, var(--color-gold) 30%, transparent);
+  color: var(--color-bone);
+}

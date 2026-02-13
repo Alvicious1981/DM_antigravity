@@ -1,0 +1,23 @@
+[project]
+name = "dungeon-cortex-engine"
+version = "0.1.0"
+description = "The Engine — Deterministic D&D 5e logic core for Dungeon Cortex"
+requires-python = ">=3.12"
+
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+    "sqlmodel>=0.0.22",
+    "python-dotenv>=1.0.0",
+    "websockets>=14.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "httpx>=0.27",
+]
+
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.build_meta"
