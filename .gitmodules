@@ -1,0 +1,9 @@
+[submodule "external-sources/fantasy-map-generator"]
+	path = external-sources/fantasy-map-generator
+	url = https://github.com/Azgaar/Fantasy-Map-Generator.git
+[submodule "external-sources/5e-database"]
+	path = external-sources/5e-database
+	url = https://github.com/5e-bits/5e-database.git
+[submodule "external-sources/5e-database-spanish"]
+	path = external-sources/5e-database-spanish
+	url = https://github.com/Magical20-ai/5e-database-spanish.git
