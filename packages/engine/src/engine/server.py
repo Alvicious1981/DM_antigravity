@@ -4,43 +4,26 @@ HTTP + WebSocket server for the AG-UI protocol.
 """
 
 import json
-import sqlite3
 import asyncio
-from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from .combat import resolve_attack
+from .combat import resolve_attack, resolve_saving_throw, AttackResult
 from .dice import roll, d20
-
-# Database path
-DB_PATH = Path(__file__).resolve().parent.parent.parent / "dungeon_cortex_dev.db"
-
-# Module-level DB connection (dev only — use async pool for prod)
-_db: sqlite3.Connection | None = None
-
-
-def get_db() -> sqlite3.Connection:
-    """Get SQLite connection (lazy singleton)."""
-    global _db
-    if _db is None:
-        _db = sqlite3.connect(str(DB_PATH))
-        _db.row_factory = sqlite3.Row
-    return _db
-
+from .db import get_db, close_db
+from .initiative import InitiativeTracker
+from .srd_queries import get_srd_mechanic, get_spell_mechanics, get_weapon_stats, get_monster_stats
+from .inventory import get_inventory, generate_loot, create_inventory_item, equip_item, unequip_item
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifecycle: startup and shutdown hooks."""
-    global _db
-    _db = sqlite3.connect(str(DB_PATH))
-    _db.row_factory = sqlite3.Row
-    count = _db.execute("SELECT COUNT(*) FROM srd_mechanic").fetchone()[0]
+    db = get_db()
+    count = db.execute("SELECT COUNT(*) FROM srd_mechanic").fetchone()[0]
     print(f"🎲 Dungeon Cortex Engine starting... ({count} SRD mechanics loaded)")
     yield
-    if _db:
-        _db.close()
+    close_db()
     print("🎲 Dungeon Cortex Engine shutting down.")
 
 
@@ -59,6 +42,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Global Initiative Tracker (single session for now)
+tracker = InitiativeTracker()
 
 
 # --- REST Endpoints ---
@@ -106,38 +92,41 @@ async def health_check():
 # --- SRD Query Endpoints (§5) ---
 
 @app.get("/api/srd/{mechanic_id}")
-async def get_srd_mechanic(mechanic_id: str, lang: str = "en"):
+async def get_srd_mechanic_endpoint(mechanic_id: str, lang: str = "en"):
     """
     Fetch a single SRD mechanic by ID.
     Second Law: State is Truth — this IS the canonical game data.
-
-    Args:
-        mechanic_id: e.g. "spell_fireball", "monster_goblin"
-        lang: "en" for English data, "es" for Spanish data
     """
-    db = get_db()
-    row = db.execute(
-        "SELECT id, type, data_json, data_es FROM srd_mechanic WHERE id = ?",
-        (mechanic_id,)
-    ).fetchone()
+    try:
+        data = get_srd_mechanic(mechanic_id, lang)
+        mechanic_type = data.get("index", mechanic_id) # Approximation if type missing in minimal parsing
+        return {
+            "id": mechanic_id,
+            "data": data,
+        }
+    except Exception as e:
+        # Fallback for manual query if helper fails or returns incomplete
+        db = get_db()
+        row = db.execute(
+            "SELECT id, type, data_json, data_es FROM srd_mechanic WHERE id = ?",
+            (mechanic_id,)
+        ).fetchone()
 
-    if not row:
-        raise HTTPException(status_code=404, detail=f"Mechanic '{mechanic_id}' not found")
+        if not row:
+            raise HTTPException(status_code=404, detail=f"Mechanic '{mechanic_id}' not found")
 
-    data = json.loads(row["data_es"] if lang == "es" else row["data_json"])
-    return {
-        "id": row["id"],
-        "type": row["type"],
-        "data": data,
-    }
+        data = json.loads(row["data_es"] if lang == "es" else row["data_json"])
+        return {
+            "id": row["id"],
+            "type": row["type"],
+            "data": data,
+        }
 
 
 @app.get("/api/srd/type/{mechanic_type}")
 async def list_srd_by_type(mechanic_type: str, lang: str = "en", limit: int = 50, offset: int = 0):
     """
     List SRD mechanics by type (spell, monster, equipment, etc).
-
-    Returns: name + index for each entry (lightweight listing).
     """
     db = get_db()
     rows = db.execute(
@@ -152,7 +141,11 @@ async def list_srd_by_type(mechanic_type: str, lang: str = "en", limit: int = 50
 
     items = []
     for row in rows:
-        data = json.loads(row["data_es"] if lang == "es" else row["data_json"])
+        data_str = row["data_es"] if lang == "es" else row["data_json"]
+        if not data_str:
+             data_str = row["data_json"] # Fallback
+
+        data = json.loads(data_str)
         items.append({
             "id": row["id"],
             "name": data.get("name", "Unknown"),
@@ -186,6 +179,29 @@ async def simulate_attack(payload: dict):
         target_current_hp=payload.get("target_current_hp", 20),
         advantage=payload.get("advantage", False),
         disadvantage=payload.get("disadvantage", False),
+    )
+    return result.to_fact_packet()
+
+
+@app.post("/api/combat/save")
+async def simulate_save(payload: dict):
+    """
+    Execute a deterministic saving throw.
+    """
+    result = resolve_saving_throw(
+        attacker_id=payload.get("attacker_id", "wizard"),
+        target_id=payload.get("target_id", "goblin"),
+        save_dc=payload.get("save_dc", 13),
+        save_stat=payload.get("save_stat", "dex"),
+        target_save_bonus=payload.get("target_save_bonus", 2),
+        damage_dice_sides=payload.get("damage_dice_sides", 6),
+        damage_dice_count=payload.get("damage_dice_count", 8),
+        damage_modifier=payload.get("damage_modifier", 0),
+        damage_type=payload.get("damage_type", "fire"),
+        target_current_hp=payload.get("target_current_hp", 20),
+        advantage=payload.get("advantage", False),
+        disadvantage=payload.get("disadvantage", False),
+        half_damage_on_success=payload.get("half_damage_on_success", True),
     )
     return result.to_fact_packet()
 
@@ -240,26 +256,146 @@ async def game_websocket(websocket: WebSocket, session_id: str):
             data = await websocket.receive_json()
             action = data.get("action")
 
+            if action == "get_inventory":
+                char_id = data.get("character_id", "player") 
+                # For Phase 3f simplification, assuming "player" -> some UUID or just string "player"
+                # If DB expects UUID, we might need to handle that. 
+                # init_db.py created tables with UUID primary keys.
+                # But for dev, we might be using strings if not enforced by SQLite strict types?
+                # SQLModel uses strict types.
+                # Let's assume character_id is passed correctly or we handle it.
+                
+                items = get_inventory(char_id)
+                await manager.send_event(websocket, {
+                    "type": "INVENTORY_UPDATE",
+                    "character_id": char_id,
+                    "items": items
+                })
+                continue
+
+            if action == "generate_loot":
+                # Debug/Admin action
+                cr = data.get("cr", 1)
+                loot_ids = generate_loot(cr)
+                char_id = data.get("character_id", "player")
+                
+                new_items = []
+                for template_id in loot_ids:
+                    item = create_inventory_item(char_id, template_id)
+                    new_items.append(item)
+                
+                # Send update immediately
+                all_items = get_inventory(char_id)
+                await manager.send_event(websocket, {
+                    "type": "INVENTORY_UPDATE",
+                    "character_id": char_id,
+                    "items": all_items
+                })
+                
+                # Narrative
+                await manager.send_event(websocket, {
+                    "type": "NARRATIVE_CHUNK",
+                    "content": f"🎁 Loot Generated: {len(new_items)} items found!",
+                    "index": 0,
+                    "done": True
+                })
+                continue
+
+                continue
+
+            if action == "equip_item":
+                char_id = data.get("character_id", "player")
+                item_id = data.get("item_id")
+                slot = data.get("slot", "main_hand")
+                
+                try:
+                    equip_item(char_id, item_id, slot)
+                    # Send update
+                    items = get_inventory(char_id)
+                    await manager.send_event(websocket, {
+                        "type": "INVENTORY_UPDATE",
+                        "character_id": char_id,
+                        "items": items
+                    })
+                except Exception as e:
+                    print(f"Equip error: {e}")
+                    
+                continue
+
+            if action == "unequip_item":
+                char_id = data.get("character_id", "player")
+                item_id = data.get("item_id")
+                
+                try:
+                    unequip_item(char_id, item_id)
+                    # Send update
+                    items = get_inventory(char_id)
+                    await manager.send_event(websocket, {
+                        "type": "INVENTORY_UPDATE",
+                        "character_id": char_id,
+                        "items": items
+                    })
+                except Exception as e:
+                    print(f"Unequip error: {e}")
+                    
+                continue
+
             if action == "attack":
+                # Resolve attack (PC vs NPC or NPC vs PC)
+                attacker_id = data.get("attacker_id", "player")
+                action_name = data.get("action_name")
+                
+                # Default params from payload
+                atk_bonus = data.get("attack_bonus", 0)
+                sides = data.get("damage_dice_sides", 6)
+                count = data.get("damage_dice_count", 1)
+                dmg_modifier = data.get("damage_modifier", 0)
+                dmg_type = data.get("damage_type", "bludgeoning")
+                
+                # Weapon Lookup (Ag-UI §5.2)
+                weapon_id = data.get("weapon_id")
+                if weapon_id:
+                    try:
+                        w_stats = get_weapon_stats(weapon_id)
+                        sides = w_stats.get("damage_dice_sides", sides)
+                        count = w_stats.get("damage_dice_count", count)
+                        dmg_type = w_stats.get("damage_type", dmg_type)
+                    except Exception as e:
+                        print(f"Error fetching weapon {weapon_id}: {e}")
+                
+                # Monster Action Lookup
+                if action_name:
+                    # Find attacker in tracker
+                    attacker = next((c for c in tracker.combatants if c.id == attacker_id), None)
+                    if attacker and attacker.actions:
+                        # Find action by name
+                        act = next((a for a in attacker.actions if a["name"] == action_name), None)
+                        if act:
+                            atk_bonus = act.get("attack_bonus", atk_bonus)
+                            count = act.get("damage_dice_count", count)
+                            sides = act.get("damage_dice_sides", sides)
+                            dmg_modifier = act.get("damage_modifier", dmg_modifier)
+                            dmg_type = act.get("damage_type", dmg_type)
+
                 # Route to combat engine
                 result = resolve_attack(
-                    attacker_id=data.get("attacker_id", "player"),
+                    attacker_id=attacker_id,
                     target_id=data.get("target_id", "enemy"),
-                    attack_bonus=data.get("attack_bonus", 0),
+                    attack_bonus=atk_bonus,
                     target_ac=data.get("target_ac", 10),
-                    damage_dice_sides=data.get("damage_dice_sides", 6),
-                    damage_dice_count=data.get("damage_dice_count", 1),
-                    damage_modifier=data.get("damage_modifier", 0),
-                    damage_type=data.get("damage_type", "bludgeoning"),
+                    damage_dice_sides=sides,
+                    damage_dice_count=count,
+                    damage_modifier=dmg_modifier,
+                    damage_type=dmg_type,
                     target_current_hp=data.get("target_current_hp", 20),
                 )
 
                 # Stream narrative chunks with typewriter effect
                 fact_packet = result.to_fact_packet()
                 if result.hit:
-                    narrative = f"⚔️ ¡Impacto! Tu ataque golpea con un {result.roll_natural} natural (+{data.get('attack_bonus', 0)} = {result.roll_total} vs AC {result.ac_target}). Infliges {result.damage_total} puntos de daño {result.damage_type}."
+                    narrative = f"⚔️ ¡Impacto! Tu ataque golpea con un {result.roll_natural} natural (+{atk_bonus} = {result.roll_total} vs AC {result.ac_target}). Infliges {result.damage_total} puntos de daño {result.damage_type}."
                 else:
-                    narrative = f"🛡️ ¡Fallo! Tu ataque con un {result.roll_natural} natural (+{data.get('attack_bonus', 0)} = {result.roll_total}) no supera la AC {result.ac_target}."
+                    narrative = f"🛡️ ¡Fallo! Tu ataque con un {result.roll_natural} natural (+{atk_bonus} = {result.roll_total}) no supera la AC {result.ac_target}."
 
                 # NARRATIVE_CHUNK — typewriter streaming
                 for i, char in enumerate(narrative):
@@ -279,6 +415,166 @@ async def game_websocket(websocket: WebSocket, session_id: str):
                         {"op": "replace", "path": f"/targets/{data.get('target_id', 'enemy')}/status", "value": result.target_status},
                     ],
                     "fact_packet": fact_packet,
+                })
+
+
+            elif action == "cast_spell":
+                # Resolve spell attack or saving throw
+                spell_id = data.get("spell_id") # e.g. "spell_fireball"
+                
+                # 1. Fetch baseline mechanics from SRD
+                mechanics = {}
+                if spell_id:
+                    try:
+                        mechanics = get_spell_mechanics(spell_id)
+                    except Exception as e:
+                        print(f"Error fetching spell mechanics for {spell_id}: {e}")
+
+                # 2. Merge with frontend payload (Frontend Overrides > SRD)
+                # This allow upcasting or custom modifications
+                is_save = data.get("is_save", mechanics.get("save_stat") is not None)
+                save_stat = data.get("save_stat", mechanics.get("save_stat", "dex"))
+                save_dc = data.get("save_dc", 13) # DC is usually calculated by caster stats, so frontend should provide it
+                
+                damage_dice_sides = data.get("damage_dice_sides", mechanics.get("damage_dice_sides", 6))
+                damage_dice_count = data.get("damage_dice_count", mechanics.get("damage_dice_count", 0))
+                damage_type = data.get("damage_type", mechanics.get("damage_type", "fire"))
+
+                if is_save:
+                    result = resolve_saving_throw(
+                        attacker_id=data.get("attacker_id", "player"),
+                        target_id=data.get("target_id", "enemy"),
+                        save_dc=save_dc,
+                        save_stat=save_stat,
+                        target_save_bonus=data.get("target_save_bonus", 0),
+                        damage_dice_sides=damage_dice_sides,
+                        damage_dice_count=damage_dice_count,
+                        damage_modifier=data.get("damage_modifier", 0),
+                        damage_type=damage_type,
+                        target_current_hp=data.get("target_current_hp", 20),
+                        half_damage_on_success=data.get("half_damage_on_success", True)
+                    )
+                    narrative = f"🔮 {data.get('attacker_id')} lanza {mechanics.get('name', 'un hechizo')}. {data.get('target_id')} resiste con {save_stat.upper()} (CD {save_dc})... {'¡Éxito!' if result.save_success else '¡Fallo!'} Daño: {result.damage_total} ({damage_type})."
+                else:
+                    # Spell Attack
+                    result = resolve_attack(
+                        attacker_id=data.get("attacker_id", "player"),
+                        target_id=data.get("target_id", "enemy"),
+                        attack_bonus=data.get("attack_bonus", 5),
+                        target_ac=data.get("target_ac", 10),
+                        damage_dice_sides=data.get("damage_dice_sides", 10),
+                        damage_dice_count=data.get("damage_dice_count", 1),
+                        damage_modifier=data.get("damage_modifier", 0),
+                        damage_type=data.get("damage_type", "fire"),
+                        target_current_hp=data.get("target_current_hp", 20),
+                    )
+                    if result.hit:
+                        narrative = f"🔥 ¡Impacto de hechizo! ({result.roll_total} vs AC {result.ac_target}). Daño: {result.damage_total} ({result.damage_type})."
+                    else:
+                        narrative = f"💨 El hechizo falla ({result.roll_total} vs AC {result.ac_target})."
+
+                # Stream narrative
+                for i, char in enumerate(narrative):
+                    await manager.send_event(websocket, {
+                        "type": "NARRATIVE_CHUNK",
+                        "content": char,
+                        "index": i,
+                        "done": i == len(narrative) - 1,
+                    })
+                    await asyncio.sleep(0.02)
+
+                # State patch
+                await manager.send_event(websocket, {
+                    "type": "STATE_PATCH",
+                    "patches": [
+                        {"op": "replace", "path": f"/targets/{data.get('target_id', 'enemy')}/hp", "value": result.target_remaining_hp},
+                        {"op": "replace", "path": f"/targets/{data.get('target_id', 'enemy')}/status", "value": result.target_status},
+                    ],
+                    "fact_packet": result.to_fact_packet(),
+                })
+
+            elif action == "roll_initiative":
+                cid = data.get("combatant_id", "player")
+                name = data.get("name", "Player")
+                dex = data.get("dex_modifier", 0)
+                is_pc = data.get("is_player", False)
+                
+                # Monster Auto-Load
+                hp_max = 10
+                ac = 10
+                actions = []
+                
+                if cid.startswith("monster_") or not is_pc:
+                    try:
+                        stats = get_monster_stats(cid)
+                        name = stats.get("name", name)
+                        hp_max = stats.get("hp_max", 10)
+                        ac = stats.get("ac", 10)
+                        actions = stats.get("actions", [])
+                        dex = stats.get("dex_modifier", dex)
+                    except Exception as e:
+                        print(f"Error fetching monster stats for {cid}: {e}")
+
+                tracker.add_combatant(cid, name, dex, is_pc, hp_max, ac, actions)
+                combatant = next(c for c in tracker.combatants if c.id == cid)
+                init_val = tracker.roll_initiative(combatant)
+                
+                narrative = f"🎲 {name} tira Iniciativa: {init_val} (1d20+{dex})."
+                
+                for i, char in enumerate(narrative):
+                    await manager.send_event(websocket, {
+                        "type": "NARRATIVE_CHUNK",
+                        "content": char,
+                        "index": i,
+                        "done": i == len(narrative) - 1,
+                    })
+                    await asyncio.sleep(0.02)
+                    
+                await manager.send_event(websocket, {
+                    "type": "INITIATIVE_UPDATE",
+                    "combatants": [
+                        {"id": c.id, "name": c.name, "initiative": c.initiative, "active": c.is_active,
+                         "hp": c.hp_current, "hp_max": c.hp_max, "ac": c.ac}
+                        for c in tracker.combatants
+                    ]
+                })
+
+            elif action == "start_combat":
+                tracker.start_encounter()
+                current = tracker.get_current_actor()
+                narrative = f"⚔️ ¡El combate comienza! Turno de {current.name}." if current else "No hay combatientes."
+                
+                await manager.send_event(websocket, {
+                    "type": "NARRATIVE_CHUNK",
+                    "content": narrative,
+                    "index": 0,
+                    "done": True,
+                })
+                await manager.send_event(websocket, {
+                    "type": "INITIATIVE_UPDATE",
+                    "combatants": [
+                        {"id": c.id, "name": c.name, "initiative": c.initiative, "active": c.is_active, "current": c.id == current.id}
+                        for c in tracker.combatants
+                    ]
+                })
+
+            elif action == "next_turn":
+                current = tracker.next_turn()
+                narrative = f"⏳ Fin de turno. {current.name}, es tu momento."
+                
+                await manager.send_event(websocket, {
+                    "type": "NARRATIVE_CHUNK",
+                    "content": narrative,
+                    "index": 0,
+                    "done": True,
+                })
+                
+                await manager.send_event(websocket, {
+                    "type": "INITIATIVE_UPDATE",
+                    "combatants": [
+                        {"id": c.id, "name": c.name, "initiative": c.initiative, "active": c.is_active, "current": c.id == current.id}
+                        for c in tracker.combatants
+                    ]
                 })
 
             elif action == "roll":

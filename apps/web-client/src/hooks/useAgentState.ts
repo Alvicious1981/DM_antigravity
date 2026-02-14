@@ -31,6 +31,37 @@ export interface DiceResult {
     total: number;
 }
 
+export interface Combatant {
+    id: string;
+    name: string;
+    initiative: number;
+    active: boolean;
+    current?: boolean;
+    isPlayer?: boolean;
+}
+
+export interface InitiativeUpdate {
+    type: "INITIATIVE_UPDATE";
+    combatants: Combatant[];
+    round?: number;
+}
+
+export interface InventoryItem {
+    instance_id: string;
+    template_id: string;
+    name: string;
+    location: string;
+    slot_type: string | null;
+    charges: number;
+    stats: Record<string, unknown>;
+}
+
+export interface InventoryUpdate {
+    type: "INVENTORY_UPDATE";
+    character_id: string;
+    items: InventoryItem[];
+}
+
 export interface GameState {
     connected: boolean;
     sessionId: string | null;
@@ -40,6 +71,9 @@ export interface GameState {
     targets: Record<string, { hp: number; status: string }>;
     lastFactPacket: Record<string, unknown> | null;
     lastDiceResult: DiceResult | null;
+    combatants: Combatant[];
+    currentRound: number;
+    inventory: InventoryItem[];
 }
 
 // ──────────────────────────────────────────────────────────
@@ -56,6 +90,9 @@ export function useAgentState(wsUrl?: string) {
         targets: {},
         lastFactPacket: null,
         lastDiceResult: null,
+        combatants: [],
+        currentRound: 0,
+        inventory: [],
     });
 
     const wsRef = useRef<WebSocket | null>(null);
@@ -134,12 +171,40 @@ export function useAgentState(wsUrl?: string) {
                     }
 
                     case "DICE_RESULT": {
+                        const dice = data as unknown as DiceResult;
                         setState((prev) => ({
                             ...prev,
-                            lastDiceResult: data as unknown as DiceResult,
+                            lastDiceResult: {
+                                type: "DICE_RESULT",
+                                notation: dice.notation,
+                                rolls: dice.rolls,
+                                total: dice.total,
+                            },
                         }));
                         break;
                     }
+
+                    case "INITIATIVE_UPDATE": {
+                        const initiative = data as unknown as InitiativeUpdate;
+                        setState((prev) => ({
+                            ...prev,
+                            combatants: initiative.combatants,
+                            currentRound: initiative.round || prev.currentRound,
+                        }));
+                        break;
+                    }
+
+                    case "INVENTORY_UPDATE": {
+                        const inv = data as unknown as InventoryUpdate;
+                        setState((prev) => ({
+                            ...prev,
+                            inventory: inv.items,
+                        }));
+                        break;
+                    }
+
+                    default:
+                        break;
                 }
             };
 

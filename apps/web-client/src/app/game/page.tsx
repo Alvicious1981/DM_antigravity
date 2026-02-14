@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useAgentState } from "@/hooks/useAgentState";
 import StoryLog from "@/components/StoryLog";
 import VitalsPanel from "@/components/VitalsPanel";
+import InitiativeTracker from "@/components/InitiativeTracker";
 import { motion, AnimatePresence } from "framer-motion";
 
 // ──────────────────────────────────────────────────────────
@@ -20,6 +21,9 @@ export default function GamePage() {
         targets,
         lastFactPacket,
         lastDiceResult,
+        combatants,
+        currentRound,
+        inventory,
         connect,
         sendAction,
         disconnect,
@@ -47,21 +51,54 @@ export default function GamePage() {
     // Auto-connect on mount
     useEffect(() => {
         connect("session-001");
+        // We can't immediately sendAction if ws not open.
+        // But useAgentState handles queueing? No.
+        // We should trigger it when connected changes to true.
         return () => disconnect();
     }, []);
+
+    useEffect(() => {
+        if (connected) {
+            sendAction({ action: "get_inventory", character_id: "player_1" });
+        }
+    }, [connected]);
+
+    const equippedWeapon = inventory.find(i => i.location === "main_hand");
+
+    // Derived state for UI
+    const weaponName = equippedWeapon ? equippedWeapon.name : "Unarmed Strike";
+    const weaponIdToSend = equippedWeapon ? equippedWeapon.template_id : "equipment_unarmed_strike"; // SRD ID for unarmed? usually not in items.
+    // "equipment_longsword" was the hardcoded default. Let's fallback to it for continuity if user hasn't equipped anything yet?
+    // Or better: Unarmed. "mechanic_unarmed_strike" is not a thing usually.
+    // Let's fallback to "equipment_longsword" for the "Demo Player" feel if nothing is equipped, 
+    // OR better: make it explicit.
 
     const handleAttack = () => {
         sendAction({
             action: "attack",
             attacker_id: "player_1",
             target_id: "goblin_1",
-            attack_bonus: 5,
+            weapon_id: weaponIdToSend,
+            attack_bonus: 5, // Should come from stats eventually
             target_ac: enemyAc,
-            damage_dice_sides: 8,
-            damage_dice_count: 1,
-            damage_modifier: 3,
-            damage_type: "slashing",
             target_current_hp: enemyHp,
+        });
+    };
+
+    const handleEquip = (itemId: string) => {
+        sendAction({
+            action: "equip_item",
+            character_id: "player_1",
+            item_id: itemId,
+            slot: "main_hand"
+        });
+    };
+
+    const handleUnequip = (itemId: string) => {
+        sendAction({
+            action: "unequip_item",
+            character_id: "player_1",
+            item_id: itemId
         });
     };
 
@@ -149,7 +186,7 @@ export default function GamePage() {
                        border border-[#c0392b]/30
                        shadow-[0_0_20px_rgba(192,57,43,0.2)]"
                         >
-                            ⚔ Atacar al {enemyName}
+                            ⚔ Atacar con {weaponName}
                         </button>
 
                         <button
@@ -163,6 +200,50 @@ export default function GamePage() {
                         >
                             🎲 Tirar d20
                         </button>
+
+                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#2a2a2d]">
+                            <button
+                                onClick={() => sendAction({
+                                    action: "cast_spell",
+                                    spell_id: "spell_fireball",
+                                    attacker_id: "Aventurero",
+                                    target_id: "goblin_1",
+                                    save_dc: 15, // Caster-dependent
+                                    target_save_bonus: 2 // Target-dependent
+                                })}
+                                disabled={!connected || isStreaming}
+                                className="py-2 px-2 rounded font-bold text-xs uppercase tracking-wide bg-[#e74c3c]/10 text-[#e74c3c] border border-[#e74c3c]/30 hover:bg-[#e74c3c]/20"
+                            >
+                                🔥 Fireball
+                            </button>
+                            <button
+                                onClick={() => sendAction({
+                                    action: "roll_initiative",
+                                    combatant_id: "player_1",
+                                    name: "Aventurero",
+                                    dex_modifier: 2,
+                                    is_player: true
+                                })}
+                                disabled={!connected || isStreaming}
+                                className="py-2 px-2 rounded font-bold text-xs uppercase tracking-wide bg-[#3498db]/10 text-[#3498db] border border-[#3498db]/30 hover:bg-[#3498db]/20"
+                            >
+                                ⚡ Iniciativa
+                            </button>
+                            <button
+                                onClick={() => sendAction({ action: "start_combat" })}
+                                disabled={!connected || isStreaming}
+                                className="py-2 px-2 rounded font-bold text-xs uppercase tracking-wide bg-[#f1c40f]/10 text-[#f1c40f] border border-[#f1c40f]/30 hover:bg-[#f1c40f]/20"
+                            >
+                                ⚔ Start
+                            </button>
+                            <button
+                                onClick={() => sendAction({ action: "generate_loot", cr: 2, character_id: "player_1" })}
+                                disabled={!connected || isStreaming}
+                                className="py-2 px-2 rounded font-bold text-xs uppercase tracking-wide bg-[#9b59b6]/10 text-[#9b59b6] border border-[#9b59b6]/30 hover:bg-[#9b59b6]/20"
+                            >
+                                🎁 Loot
+                            </button>
+                        </div>
 
                         {!connected && (
                             <button
@@ -178,7 +259,7 @@ export default function GamePage() {
                     </div>
                 </div>
 
-                {/* RIGHT PANEL — Context (Grimoire) */}
+                {/* RIGHT PANEL — Context (Grimorio) */}
                 <div className="w-[25%] border-l border-[#2a2a2d] bg-[#111113] p-4 space-y-4 overflow-y-auto">
                     <h2
                         className="text-sm font-semibold tracking-widest uppercase"
@@ -186,6 +267,12 @@ export default function GamePage() {
                     >
                         Grimorio
                     </h2>
+
+                    {/* Initiative Tracker */}
+                    <InitiativeTracker
+                        combatants={combatants}
+                        currentRound={currentRound}
+                    />
 
                     {/* Last Fact Packet Display */}
                     {lastFactPacket && (
@@ -261,10 +348,45 @@ export default function GamePage() {
                     </div>
 
                     {/* SRD Reference Placeholder */}
-                    <div className="rounded-lg border border-[#2a2a2d]/50 border-dashed bg-[#1a1a1d]/50 p-3 text-center">
-                        <p className="text-[10px] text-[#6b6b75] italic">
-                            Panel contextual — Bestiario / Inventario
+                    {/* Inventory */}
+                    <div className="rounded-lg border border-[#2a2a2d] bg-[#1a1a1d] p-3 space-y-2 max-h-60 overflow-y-auto">
+                        <p className="text-[10px] font-bold tracking-widest uppercase text-[#6b6b75]">
+                            Inventario ({inventory.length})
                         </p>
+                        <div className="space-y-1 text-xs">
+                            {inventory.length === 0 ? (
+                                <span className="text-[#6b6b75] italic">Vacío...</span>
+                            ) : (
+                                inventory.map((item) => (
+                                    <div key={item.instance_id} className="flex justify-between items-center group p-1 hover:bg-[#2a2a2d] rounded cursor-default">
+                                        <div className="flex flex-col">
+                                            <span className={`transition-colors ${item.location === 'main_hand' ? 'text-green-500 font-bold' : 'text-[#b0b0b8] group-hover:text-white'}`}>
+                                                {item.name}
+                                                {item.location === 'main_hand' && " (E)"}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            {item.location === 'main_hand' ? (
+                                                <button
+                                                    onClick={() => handleUnequip(item.instance_id)}
+                                                    className="text-[10px] uppercase text-red-400 hover:text-red-300 border border-red-500/30 px-1 rounded"
+                                                >
+                                                    Unequip
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleEquip(item.instance_id)}
+                                                    className="text-[10px] uppercase text-green-400 hover:text-green-300 border border-green-500/30 px-1 rounded"
+                                                >
+                                                    Equip
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

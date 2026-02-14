@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from engine.combat import resolve_attack, AttackResult
+from engine.combat import resolve_attack, resolve_saving_throw, AttackResult
 from engine.dice import DiceResult
 
 
@@ -184,3 +184,55 @@ class TestResolveAttack:
                 assert packet["target"] == "skeleton"
                 assert packet["hit"] is True
                 assert packet["damage_total"] == 6
+
+
+class TestResolveSavingThrow:
+    """Tests for resolve_saving_throw() — spells and hazards."""
+
+    def test_save_success_half_damage(self):
+        """Standard save: Success = half damage."""
+        # Roll 15 + 2 = 17 vs DC 13 (Success)
+        with patch("engine.combat.d20", return_value=_fake_dice_result(15, 2)):
+            # Damage: 6+6=12. Half is 6.
+            with patch("engine.combat.damage", return_value=_fake_damage_result((6, 6), 0)):
+                result = resolve_saving_throw(
+                    attacker_id="wizard",
+                    target_id="goblin",
+                    save_dc=13,
+                    save_stat="dex",
+                    target_save_bonus=2,
+                    damage_dice_sides=6,
+                    damage_dice_count=2,
+                    damage_modifier=0,
+                    damage_type="fire",
+                    target_current_hp=20,
+                    half_damage_on_success=True,
+                )
+
+                assert result.save_success is True
+                assert result.damage_total == 6
+                assert result.target_remaining_hp == 14
+
+    def test_save_fail_full_damage(self):
+        """Failed save takes full damage."""
+        # Roll 5 + 2 = 7 vs DC 13 (Fail)
+        with patch("engine.combat.d20", return_value=_fake_dice_result(5, 2)):
+            # Damage: 6.
+            with patch("engine.combat.damage", return_value=_fake_damage_result((6,), 0)):
+                result = resolve_saving_throw(
+                    attacker_id="wizard",
+                    target_id="goblin",
+                    save_dc=13,
+                    save_stat="dex",
+                    target_save_bonus=2,
+                    damage_dice_sides=6,
+                    damage_dice_count=1,
+                    damage_modifier=0,
+                    damage_type="fire",
+                    target_current_hp=10,
+                )
+
+                assert result.save_success is False
+                assert result.damage_total == 6
+                assert result.target_remaining_hp == 4
+

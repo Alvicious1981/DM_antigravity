@@ -71,3 +71,37 @@ def calculate_armor_class(
     """
     effective_dex = min(dex_modifier, max_dex_bonus) if max_dex_bonus is not None else dex_modifier
     return base_ac + effective_dex + shield_bonus
+
+
+def consume_spell_slot(
+    spell_level: int,
+    available_slots: dict[int, int],
+) -> dict[int, int]:
+    """
+    Decrement a spell slot if available.
+    Returns the new slots dictionary.
+    Raises ValueError if no slots available (enforcing Second Law).
+    """
+    if not validate_spell_slot(spell_level, available_slots):
+        raise ValueError(f"No spell slots available for level {spell_level}")
+
+    # Create a copy to maintain immutability principles in state updates
+    new_slots = available_slots.copy()
+    new_slots[spell_level] -= 1
+    return new_slots
+
+
+def validate_concentration(
+    is_concentrating: bool,
+    new_spell_requires_concentration: bool,
+) -> bool:
+    """
+    Check if concentration rules are violated.
+    SRD 5.1: You lose concentration on an old spell if you cast a new one that requires it.
+    This function returns TRUE if the cast is valid (but implies the old spell ends).
+    
+    Note: The engine should handle the side effect (dropping old concentration),
+    this validator just confirms the ACTION Itself is legal (casting is always legal, just has consequences).
+    """
+    return True  # Casting is always valid; logic core must handle the drop
+
