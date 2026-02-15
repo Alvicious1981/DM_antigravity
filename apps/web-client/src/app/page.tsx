@@ -1,61 +1,82 @@
-/**
- * Dungeon Cortex — Landing Page (Phase 1 Scaffold)
- * Placeholder demonstrating the Dark Fantasy design system.
- * Will be replaced by The Triptych (§7) in Phase 4.
- */
+'use client';
+import React, { useState, useEffect } from 'react';
+import WelcomeScreen from './WelcomeScreen';
+import Dashboard from './Dashboard';
+import MainMenu from './MainMenu';
+import CharacterCreator from '../components/CharacterCreator';
+
+type GameState = 'SPLASH' | 'MENU' | 'CREATOR' | 'GAME';
 
 export default function Home() {
+  const [view, setView] = useState<GameState>('SPLASH');
+  const [saves, setSaves] = useState<{ save_id: string; created_at: string }[]>([]);
+  const [session, setSession] = useState<any>(null); // TODO: Type this
+
+  // Fetch saves on mount
+  useEffect(() => {
+    fetch('http://localhost:8000/api/game/list')
+      .then(res => res.json())
+      .then(data => setSaves(data))
+      .catch(err => console.error("Failed to fetch saves:", err));
+  }, []);
+
+  const handleNewGame = () => {
+    setView('CREATOR');
+  };
+
+  const handleLoadGame = async (saveId: string) => {
+    try {
+      const res = await fetch(`http://localhost:8000/api/game/load/${saveId}`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      setSession(data);
+      setView('GAME');
+    } catch (err) {
+      console.error("Failed to load game:", err);
+    }
+  };
+
+  const handleCreateSession = async (characterData: { name: string; classId: string; backgroundId: string }) => {
+    try {
+      const res = await fetch('http://localhost:8000/api/game/new', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(characterData),
+      });
+      const data = await res.json();
+      setSession(data);
+      setView('GAME');
+    } catch (err) {
+      console.error("Failed to create session:", err);
+    }
+  };
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-abyss p-8">
-      {/* Central Sigil */}
-      <div className="relative flex flex-col items-center gap-8">
-        {/* Arcane glow ring */}
-        <div className="absolute -inset-16 rounded-full bg-gold/5 blur-3xl" />
+    <main className="min-h-screen bg-black text-white">
+      {view === 'SPLASH' && (
+        <WelcomeScreen onEnter={() => setView('MENU')} />
+      )}
 
-        {/* Title — Cinzel for dramatic weight */}
-        <h1
-          className="relative text-5xl font-bold tracking-wider text-gold"
-          style={{ fontFamily: "var(--font-cinzel)" }}
-        >
-          DUNGEON CORTEX
-        </h1>
+      {view === 'MENU' && (
+        <MainMenu
+          onNewGame={handleNewGame}
+          onLoadGame={handleLoadGame}
+          onSettings={() => console.log("Settings not implemented")}
+          saves={saves}
+        />
+      )}
 
-        {/* Subtitle */}
-        <p className="max-w-md text-center text-lg text-ash">
-          Motor de Realidad Simulada — D&D 5e
-        </p>
+      {view === 'CREATOR' && (
+        <CharacterCreator
+          onCreate={handleCreateSession}
+          onCancel={() => setView('MENU')}
+        />
+      )}
 
-        {/* The Iron Laws */}
-        <div className="mt-8 flex flex-col gap-4 text-sm">
-          {[
-            { number: "I", law: "Code is Law", desc: "La IA narra; el Código resuelve." },
-            { number: "II", law: "State is Truth", desc: "Si no está en la DB, no existe." },
-            { number: "III", law: "Diegetic UI", desc: "La interfaz ES el mundo." },
-          ].map((item) => (
-            <div
-              key={item.number}
-              className="flex items-center gap-4 rounded-lg border border-iron bg-obsidian/80 px-6 py-4 backdrop-blur-sm transition-colors hover:border-gold/40"
-            >
-              <span
-                className="text-2xl font-bold text-gold/60"
-                style={{ fontFamily: "var(--font-cinzel)" }}
-              >
-                {item.number}
-              </span>
-              <div>
-                <p className="font-semibold text-bone">{item.law}</p>
-                <p className="text-xs text-ash">{item.desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Status Badge */}
-        <div className="mt-8 flex items-center gap-2 text-xs text-ash">
-          <span className="inline-block h-2 w-2 rounded-full bg-venom animate-pulse" />
-          <span>Engine v0.1.0 — Phase 1: Scaffolding Complete</span>
-        </div>
-      </div>
-    </div>
+      {view === 'GAME' && (
+        <Dashboard initialSession={session} />
+      )}
+    </main>
   );
 }

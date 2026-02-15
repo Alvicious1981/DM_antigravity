@@ -1,0 +1,145 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e3]:
+      - heading "THE VESSEL" [level=2] [ref=e4]
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - heading "Valerius" [level=3] [ref=e7]
+          - generic [ref=e8]:
+            - generic [ref=e9]: AC
+            - generic [ref=e10]: "18"
+        - generic [ref=e11]:
+          - generic [ref=e12]:
+            - generic [ref=e13]: HP
+            - generic [ref=e14]: 45 / 45
+          - generic [ref=e17]: ESTABLE
+      - generic [ref=e18]:
+        - button "Mochila" [ref=e19]
+        - button "Grimorio" [ref=e20]
+      - generic [ref=e22]:
+        - heading "Equipamiento" [level=2] [ref=e23]
+        - generic [ref=e24]:
+          - generic [ref=e25]:
+            - generic [ref=e26]: "Cabeza:"
+            - generic [ref=e27]: —
+          - generic [ref=e28]:
+            - generic [ref=e29]: "Torso:"
+            - generic [ref=e30]: —
+          - generic [ref=e31]:
+            - generic [ref=e32]: "Mano Principal:"
+            - generic [ref=e33]: —
+          - generic [ref=e34]:
+            - generic [ref=e35]: "Mano Secundaria:"
+            - generic [ref=e36]: —
+          - generic [ref=e37]:
+            - generic [ref=e38]: "Pies:"
+            - generic [ref=e39]: —
+          - generic [ref=e40]:
+            - generic [ref=e41]: "Anillo I:"
+            - generic [ref=e42]: —
+          - generic [ref=e43]:
+            - generic [ref=e44]: "Anillo II:"
+            - generic [ref=e45]: —
+          - generic [ref=e46]:
+            - generic [ref=e47]: "Amuleto:"
+            - generic [ref=e48]: —
+        - generic [ref=e49]:
+          - paragraph [ref=e50]: Mochila (0/20)
+          - generic [ref=e51]:
+            - generic [ref=e52]: ·
+            - generic [ref=e53]: ·
+            - generic [ref=e54]: ·
+            - generic [ref=e55]: ·
+            - generic [ref=e56]: ·
+            - generic [ref=e57]: ·
+            - generic [ref=e58]: ·
+            - generic [ref=e59]: ·
+            - generic [ref=e60]: ·
+            - generic [ref=e61]: ·
+            - generic [ref=e62]: ·
+            - generic [ref=e63]: ·
+            - generic [ref=e64]: ·
+            - generic [ref=e65]: ·
+            - generic [ref=e66]: ·
+            - generic [ref=e67]: ·
+            - generic [ref=e68]: ·
+            - generic [ref=e69]: ·
+            - generic [ref=e70]: ·
+            - generic [ref=e71]: ·
+    - generic [ref=e72]:
+      - generic "Connected" [ref=e73]
+      - generic [ref=e74]:
+        - generic [ref=e76]:
+          - heading "Mapa del Mundo" [level=2] [ref=e77]
+          - generic [ref=e78]:
+            - generic [ref=e79]:
+              - generic "Celda 1" [ref=e80] [cursor=pointer]:
+                - generic [ref=e81]: "1"
+              - generic "Celda 2" [ref=e82] [cursor=pointer]:
+                - generic [ref=e83]: "2"
+              - generic "Celda 3" [ref=e84] [cursor=pointer]:
+                - generic [ref=e85]: "3"
+              - generic "Celda 4" [ref=e86] [cursor=pointer]:
+                - generic [ref=e87]: "4"
+              - generic "Celda 5" [ref=e88] [cursor=pointer]:
+                - generic [ref=e89]: "5"
+              - generic "Celda 6" [ref=e90] [cursor=pointer]:
+                - generic [ref=e91]: "6"
+              - generic "Celda 7" [ref=e92] [cursor=pointer]:
+                - generic [ref=e93]: "7"
+              - generic "Celda 8" [ref=e94] [cursor=pointer]:
+                - generic [ref=e95]: "8"
+              - generic "Celda 9" [ref=e96] [cursor=pointer]:
+                - generic [ref=e97]: "9"
+              - generic "Celda 10" [ref=e98] [cursor=pointer]:
+                - generic [ref=e99]: "10"
+              - generic "Celda 11" [ref=e100] [cursor=pointer]:
+                - generic [ref=e101]: "11"
+              - generic "Celda 12" [ref=e102] [cursor=pointer]:
+                - generic [ref=e103]: "12"
+              - generic "Celda 13" [ref=e104] [cursor=pointer]:
+                - generic [ref=e105]: "13"
+              - generic "Celda 14" [ref=e106] [cursor=pointer]:
+                - generic [ref=e107]: "14"
+              - generic "Celda 15" [ref=e108] [cursor=pointer]:
+                - generic [ref=e109]: "15"
+              - generic "Celda 16" [ref=e110] [cursor=pointer]:
+                - generic [ref=e111]: "16"
+              - generic "Celda 17" [ref=e112] [cursor=pointer]:
+                - generic [ref=e113]: "17"
+              - generic "Celda 18" [ref=e114] [cursor=pointer]:
+                - generic [ref=e115]: "18"
+              - generic "Celda 19" [ref=e116] [cursor=pointer]:
+                - generic [ref=e117]: "19"
+              - generic "Celda 20" [ref=e118] [cursor=pointer]:
+                - generic [ref=e119]: "20"
+              - generic "Celda 21" [ref=e120] [cursor=pointer]:
+                - generic [ref=e121]: "21"
+              - generic "Celda 22" [ref=e122] [cursor=pointer]:
+                - generic [ref=e123]: "22"
+              - generic "Celda 23" [ref=e124] [cursor=pointer]:
+                - generic [ref=e125]: "23"
+              - generic "Celda 24" [ref=e126] [cursor=pointer]:
+                - generic [ref=e127]: "24"
+              - generic "Celda 25" [ref=e128] [cursor=pointer]:
+                - generic [ref=e129]: "25"
+            - generic [ref=e130]: Selecciona una celda para viajar
+        - generic [ref=e132]:
+          - heading "Crónica" [level=2] [ref=e135]
+          - generic [ref=e137]: La aventura aguarda...
+      - generic [ref=e138]:
+        - button "⚔️ Attack" [ref=e139]
+        - button "💀 Monster Attack" [ref=e140]
+        - button "🎁 Loot" [ref=e141]
+        - button "🎲 Initiative" [ref=e142]
+        - button "💾 Memories" [ref=e143]
+    - generic [ref=e144]:
+      - heading "THE CONFLICT" [level=2] [ref=e145]
+      - paragraph [ref=e149]: Tira Iniciativa para comenzar el combate
+  - button "Open Next.js Dev Tools" [ref=e155] [cursor=pointer]:
+    - img [ref=e156]
+  - alert [ref=e159]
+```

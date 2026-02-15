@@ -84,6 +84,7 @@ def create_database():
     conn = sqlite3.connect(str(DB_PATH))
     cursor = conn.cursor()
 
+    # Core table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS srd_mechanic (
             id   TEXT PRIMARY KEY,
@@ -93,7 +94,19 @@ def create_database():
         )
     """)
 
-    # Index for fast type queries
+    # FTS5 Virtual Table for Hybrid Search (Full-Text)
+    # We include id, type, content_en, and content_es for searching
+    cursor.execute("""
+        CREATE VIRTUAL TABLE IF NOT EXISTS srd_mechanic_fts USING fts5(
+            id UNINDEXED,
+            type,
+            content_en,
+            content_es,
+            tokenize='unicode61'
+        )
+    """)
+
+    # Index for fast type queries on the core table
     cursor.execute("""
         CREATE INDEX IF NOT EXISTS idx_srd_mechanic_type ON srd_mechanic(type)
     """)
@@ -168,11 +181,26 @@ def ingest():
             if es_item:
                 es_count += 1
 
-            # Upsert (INSERT OR REPLACE)
+            # Upsert (INSERT OR REPLACE) core table
             cursor.execute("""
                 INSERT OR REPLACE INTO srd_mechanic (id, type, data_json, data_es)
                 VALUES (?, ?, ?, ?)
             """, (mechanic_id, mechanic_type, data_json_str, data_es_str))
+
+            # Populate FTS table
+            # Extract names and descriptions for search
+            content_en = f"{item.get('name', '')} {item.get('desc', '') or ''}"
+            if isinstance(item.get('desc'), list):
+                content_en = f"{item.get('name', '')} {' '.join(item.get('desc', []))}"
+            
+            content_es = f"{es_item.get('name', '')} {es_item.get('desc', '') or ''}"
+            if isinstance(es_item.get('desc'), list):
+                content_es = f"{es_item.get('name', '')} {' '.join(es_item.get('desc', []))}"
+
+            cursor.execute("""
+                INSERT OR REPLACE INTO srd_mechanic_fts (id, type, content_en, content_es)
+                VALUES (?, ?, ?, ?)
+            """, (mechanic_id, mechanic_type, content_en, content_es))
 
             count += 1
 

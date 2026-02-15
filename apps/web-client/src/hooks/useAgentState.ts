@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { SpellId, CombatantId, SessionId, CharacterId, asSessionId } from "../domain/types";
+import { dispatchMessage } from "./socketHandlers";
 
 // ──────────────────────────────────────────────────────────
 // AG-UI Protocol Types (§6)
@@ -9,6 +11,12 @@ import { useState, useEffect, useRef, useCallback } from "react";
 export interface AgUiEvent {
     type: string;
     [key: string]: unknown;
+}
+
+export interface LogEvent {
+    type: "LOG";
+    message: string;
+    level: "info" | "warning" | "error";
 }
 
 export interface NarrativeChunk {
@@ -31,13 +39,58 @@ export interface DiceResult {
     total: number;
 }
 
+export interface ActiveCondition {
+    condition_id: string;
+    source_id?: string;
+    duration_rounds: number;
+    save_ends_dc?: number;
+    save_stat?: string;
+}
+
 export interface Combatant {
-    id: string;
+    id: CombatantId;
     name: string;
     initiative: number;
     active: boolean;
     current?: boolean;
     isPlayer?: boolean;
+    hp_max?: number;
+    hp_current?: number;
+    ac?: number;
+    actions?: Array<{
+        name: string;
+        desc: string;
+        attack_bonus: number;
+        damage_dice_count?: number;
+        damage_dice_sides?: number;
+        damage_modifier?: number;
+        damage_type?: string;
+    }>;
+    // Support both string IDs (legacy/simple) and full ActiveCondition objects
+    conditions?: Array<string | ActiveCondition>;
+    position?: number;
+}
+
+export interface Spell {
+    id: SpellId;
+    name: string;
+    level: number;
+    school: string;
+    casting_time: string;
+    range: string;
+    components: string;
+    duration: string;
+    description: string;
+    is_attack: boolean;
+    is_save: boolean;
+    save_stat?: string;
+    damage_dice_sides: number;
+    damage_dice_count: number;
+    damage_type: string;
+    aoe_radius: number;
+    // Localization
+    name_es?: string;
+    description_es?: string;
 }
 
 export interface InitiativeUpdate {
@@ -54,36 +107,98 @@ export interface InventoryItem {
     slot_type: string | null;
     charges: number;
     stats: Record<string, unknown>;
+    rarity?: string;
+    attunement?: boolean;
 }
 
 export interface InventoryUpdate {
     type: "INVENTORY_UPDATE";
-    character_id: string;
+    character_id: CharacterId;
     items: InventoryItem[];
 }
 
+export interface SpellBookUpdate {
+    type: "SPELL_BOOK_UPDATE";
+    character_id: CharacterId;
+    spells: Spell[];
+}
+
+export interface MonsterSearchResult {
+    id: string;
+    name: string;
+    cr: number;
+    type: string;
+    hp: number;
+    ac: number;
+}
+
+export interface MonsterSearchEvent {
+    type: "MONSTER_SEARCH_RESULTS";
+    results: MonsterSearchResult[];
+}
+
+export interface ShowWidget {
+    type: "SHOW_WIDGET";
+    widget_type: "LOOT_MODAL" | "CHARACTER_CARD" | "COMBAT_FEEDBACK";
+    data: Record<string, unknown>;
+}
+
+export interface MapNode {
+    id: string;
+    name: string;
+    type: string;
+    coordinates: { x: number; y: number };
+    description: string;
+    connections: string[];
+    risk_level: number;
+}
+
+export interface MapDataEvent {
+    type: "MAP_DATA";
+    nodes: MapNode[];
+    current_node_id: string;
+}
+
+// ... existing interfaces ...
+
 export interface GameState {
     connected: boolean;
-    sessionId: string | null;
+    sessionId: SessionId | null;
+    role: "dm" | "player";
     narrative: string[];
     currentNarrative: string;
     isStreaming: boolean;
-    targets: Record<string, { hp: number; status: string }>;
+    targets: Record<string, { hp: number; status: string; ac?: number; conditions?: string[] }>;
+
     lastFactPacket: Record<string, unknown> | null;
     lastDiceResult: DiceResult | null;
     combatants: Combatant[];
     currentRound: number;
     inventory: InventoryItem[];
+    spells: Spell[];
+    monsterSearchResults: MonsterSearchResult[];
+    activeWidgets: ShowWidget[];
+    mapState: {
+        selectedCell: number | null;
+        lastInteraction: { cell: number; type: string; character: string } | null;
+        nodes: MapNode[];
+        currentNodeId: string | null;
+    };
+    saveList: SaveInfo[];
+    toasts: LogEvent[];
 }
 
-// ──────────────────────────────────────────────────────────
-// useAgentState Hook — AG-UI WebSocket Client
-// ──────────────────────────────────────────────────────────
+export interface SaveInfo {
+    id: string;
+    timestamp: string;
+    characterNames: string[];
+}
 
 export function useAgentState(wsUrl?: string) {
-    const [state, setState] = useState<GameState>({
+    const [gameState, setGameState] = useState<GameState>({
         connected: false,
         sessionId: null,
+        role: "player",
         narrative: [],
         currentNarrative: "",
         isStreaming: false,
@@ -93,14 +208,43 @@ export function useAgentState(wsUrl?: string) {
         combatants: [],
         currentRound: 0,
         inventory: [],
+        spells: [],
+        monsterSearchResults: [],
+        activeWidgets: [],
+        mapState: {
+            selectedCell: null,
+            lastInteraction: null,
+            nodes: [],
+            currentNodeId: null
+        },
+        saveList: [],
+        toasts: [],
     });
 
     const wsRef = useRef<WebSocket | null>(null);
     const narrativeBufferRef = useRef<string>("");
 
+    const onConnectionEstablished = useCallback((event: AgUiEvent) => {
+        setGameState(prev => ({
+            ...prev,
+            connected: true,
+            sessionId: asSessionId(event.session_id as string),
+            role: (event.role as "dm" | "player") || "player"
+        }));
+    }, []);
+
     const connect = useCallback(
-        (sessionId: string = "default") => {
-            const url = wsUrl || `ws://localhost:8000/ws/game/${sessionId}`;
+        (id: string = "default", role: string = "player", dmToken?: string) => {
+            const sessionId = asSessionId(id);
+            let url = wsUrl || `ws://localhost:8000/ws/game/${sessionId}`;
+
+            // Append role and token if provided
+            const params = new URLSearchParams();
+            if (role) params.append("role", role);
+            if (dmToken) params.append("dm_token", dmToken);
+            if (params.toString()) {
+                url += `?${params.toString()}`;
+            }
 
             if (wsRef.current?.readyState === WebSocket.OPEN) {
                 return;
@@ -109,116 +253,31 @@ export function useAgentState(wsUrl?: string) {
             const ws = new WebSocket(url);
 
             ws.onopen = () => {
-                setState((prev) => ({ ...prev, connected: true, sessionId }));
+                // Send a connection request to the server
+                ws.send(JSON.stringify({ type: "CONNECTION_REQUEST", session_id: sessionId }));
             };
 
             ws.onmessage = (event) => {
                 const data: AgUiEvent = JSON.parse(event.data);
-
-                switch (data.type) {
-                    case "CONNECTION_ESTABLISHED":
-                        break;
-
-                    case "NARRATIVE_CHUNK": {
-                        const chunk = data as unknown as NarrativeChunk;
-                        narrativeBufferRef.current += chunk.content;
-
-                        setState((prev) => ({
-                            ...prev,
-                            currentNarrative: narrativeBufferRef.current,
-                            isStreaming: !chunk.done,
-                        }));
-
-                        if (chunk.done) {
-                            const finalText = narrativeBufferRef.current;
-                            narrativeBufferRef.current = "";
-                            setState((prev) => ({
-                                ...prev,
-                                narrative: [...prev.narrative, finalText],
-                                currentNarrative: "",
-                                isStreaming: false,
-                            }));
-                        }
-                        break;
-                    }
-
-                    case "STATE_PATCH": {
-                        const patch = data as unknown as StatePatch;
-                        setState((prev) => {
-                            const newTargets = { ...prev.targets };
-
-                            for (const p of patch.patches) {
-                                // Parse path like "/targets/goblin_1/hp"
-                                const parts = p.path.split("/").filter(Boolean);
-                                if (parts[0] === "targets" && parts.length >= 3) {
-                                    const targetId = parts[1];
-                                    const field = parts[2];
-                                    if (!newTargets[targetId]) {
-                                        newTargets[targetId] = { hp: 20, status: "alive" };
-                                    }
-                                    (newTargets[targetId] as Record<string, unknown>)[field] =
-                                        p.value;
-                                }
-                            }
-
-                            return {
-                                ...prev,
-                                targets: newTargets,
-                                lastFactPacket: patch.fact_packet || prev.lastFactPacket,
-                            };
-                        });
-                        break;
-                    }
-
-                    case "DICE_RESULT": {
-                        const dice = data as unknown as DiceResult;
-                        setState((prev) => ({
-                            ...prev,
-                            lastDiceResult: {
-                                type: "DICE_RESULT",
-                                notation: dice.notation,
-                                rolls: dice.rolls,
-                                total: dice.total,
-                            },
-                        }));
-                        break;
-                    }
-
-                    case "INITIATIVE_UPDATE": {
-                        const initiative = data as unknown as InitiativeUpdate;
-                        setState((prev) => ({
-                            ...prev,
-                            combatants: initiative.combatants,
-                            currentRound: initiative.round || prev.currentRound,
-                        }));
-                        break;
-                    }
-
-                    case "INVENTORY_UPDATE": {
-                        const inv = data as unknown as InventoryUpdate;
-                        setState((prev) => ({
-                            ...prev,
-                            inventory: inv.items,
-                        }));
-                        break;
-                    }
-
-                    default:
-                        break;
+                if (data.type === "CONNECTION_ESTABLISHED") {
+                    onConnectionEstablished(data);
+                } else {
+                    const updater = dispatchMessage(data, narrativeBufferRef);
+                    setGameState(updater);
                 }
             };
 
             ws.onclose = () => {
-                setState((prev) => ({ ...prev, connected: false }));
+                setGameState((prev) => ({ ...prev, connected: false }));
             };
 
             ws.onerror = () => {
-                setState((prev) => ({ ...prev, connected: false }));
+                setGameState((prev) => ({ ...prev, connected: false }));
             };
 
             wsRef.current = ws;
         },
-        [wsUrl]
+        [wsUrl, onConnectionEstablished]
     );
 
     const sendAction = useCallback((action: Record<string, unknown>) => {
@@ -239,10 +298,46 @@ export function useAgentState(wsUrl?: string) {
         };
     }, []);
 
+    const getSpells = () => {
+        if (!wsRef.current) return;
+        wsRef.current.send(JSON.stringify({
+            type: "get_spells",
+            character_id: "player_1"
+        }));
+    };
+
+    const listSaves = useCallback(() => {
+        if (!wsRef.current) return;
+        wsRef.current.send(JSON.stringify({
+            action: "list_saves"
+        }));
+    }, []);
+
+    const requestMapData = useCallback(() => {
+        if (!wsRef.current) return;
+        const playerId = gameState.combatants.find(c => c.isPlayer)?.id || "player_1";
+        wsRef.current.send(JSON.stringify({
+            action: "map_interaction",
+            character_id: playerId,
+            interaction_type: "request_data"
+        }));
+    }, [gameState.combatants]);
+
+    const removeToast = useCallback((index: number) => {
+        setGameState((prev) => ({
+            ...prev,
+            toasts: prev.toasts.filter((_, i) => i !== index)
+        }));
+    }, []);
+
     return {
-        ...state,
+        ...gameState,
         connect,
         sendAction,
         disconnect,
+        getSpells,
+        listSaves,
+        requestMapData,
+        removeToast,
     };
 }

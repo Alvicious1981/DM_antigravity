@@ -14,9 +14,11 @@ interface Combatant {
 interface InitiativeTrackerProps {
     combatants: Combatant[];
     currentRound?: number;
+    onSelect?: (id: string) => void;
+    selectedId?: string | null;
 }
 
-export default function InitiativeTracker({ combatants, currentRound = 0 }: InitiativeTrackerProps) {
+export default function InitiativeTracker({ combatants, currentRound = 0, onSelect, selectedId }: InitiativeTrackerProps) {
     return (
         <div className="space-y-3">
             {/* Round Counter */}
@@ -54,11 +56,17 @@ export default function InitiativeTracker({ combatants, currentRound = 0 }: Init
                                 exit={{ opacity: 0, x: 10 }}
                                 transition={{ duration: 0.3 }}
                                 className={`relative rounded-lg border p-3 transition-all duration-300 ${isCurrent
-                                        ? "border-[#c5a059] bg-[#c5a059]/10 shadow-[0_0_15px_rgba(197,160,89,0.3)]"
-                                        : "border-[#2a2a2d] bg-[#1a1a1d]"
+                                    ? "border-[#c5a059] bg-[#c5a059]/10 shadow-[0_0_15px_rgba(197,160,89,0.3)]"
+                                    : "border-[#2a2a2d] bg-[#1a1a1d]"
+                                    } ${selectedId === combatant.id
+                                        ? "ring-2 ring-blue-500 bg-blue-500/10"
+                                        : ""
                                     }`}
+                                onClick={() => onSelect?.(combatant.id)}
+                                data-testid={`combatant-${combatant.id}`}
                                 style={{
                                     filter: isInactive ? "grayscale(1)" : "none",
+                                    cursor: onSelect ? "pointer" : "default",
                                 }}
                             >
                                 {/* Current Turn Indicator */}

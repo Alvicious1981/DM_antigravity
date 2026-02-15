@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useAgentState } from "@/hooks/useAgentState";
-import StoryLog from "@/components/StoryLog";
+import StoryLog from "@/app/StoryLog";
 import VitalsPanel from "@/components/VitalsPanel";
 import InitiativeTracker from "@/components/InitiativeTracker";
+import SpellBook from "@/components/SpellBook";
 import { motion, AnimatePresence } from "framer-motion";
+
 
 // ──────────────────────────────────────────────────────────
 // Game Page — The Triptych (§7)
@@ -24,7 +26,10 @@ export default function GamePage() {
         combatants,
         currentRound,
         inventory,
+        spells,
+        monsterSearchResults,
         connect,
+
         sendAction,
         disconnect,
     } = useAgentState();
@@ -39,6 +44,14 @@ export default function GamePage() {
     const [enemyHp, setEnemyHp] = useState(12);
     const [enemyMaxHp] = useState(12);
     const [enemyAc] = useState(15);
+
+    // UI State
+    const [activeTab, setActiveTab] = useState<"inventory" | "bestiary" | "grimoire">("inventory");
+    const [monsterQuery, setMonsterQuery] = useState("");
+
+    const [selectedCombatantId, setSelectedCombatantId] = useState<string | null>(null);
+
+    const selectedCombatant = combatants.find(c => c.id === selectedCombatantId);
 
     // Sync enemy HP from WebSocket patches
     useEffect(() => {
@@ -60,8 +73,10 @@ export default function GamePage() {
     useEffect(() => {
         if (connected) {
             sendAction({ action: "get_inventory", character_id: "player_1" });
+            sendAction({ action: "get_spells", character_id: "player_1" });
         }
     }, [connected]);
+
 
     const equippedWeapon = inventory.find(i => i.location === "main_hand");
 
@@ -111,6 +126,51 @@ export default function GamePage() {
         });
     };
 
+    const handleSearchMonsters = () => {
+        if (!monsterQuery.trim()) return;
+        sendAction({ action: "search_monsters", query: monsterQuery });
+    };
+
+    const handleAddCombatant = (monster: any) => {
+        const uniqueId = `monster_${monster.id}_${Date.now().toString().slice(-4)}`;
+        sendAction({
+            action: "add_combatant",
+            instance_id: uniqueId,
+            template_id: monster.id,
+            name: monster.name,
+        });
+    };
+
+    const handleMonsterAttack = (attackerId: string, targetId: string, actionIndex: number, actionName: string) => {
+        sendAction({
+            action: "monster_attack",
+            attacker_id: attackerId,
+            target_id: "player_1", // Hardcoded target for now, eventually selectable
+            action_index: actionIndex,
+            target_ac: playerAc, // Client knowledge of player AC
+            target_current_hp: playerHp,
+        });
+    };
+
+    const handleCastSpell = (spellId: string) => {
+        const spell = spells.find(s => s.id === spellId);
+        // Default logic for now: Cast at selected enemy or self if beneficial?
+        // For v1, let's hardcode target to "goblin_1" if offensive, "player_1" if beneficial/self?
+        // Or just let backend handle minimal payload and we improve later.
+
+        // Simple heuristic for target:
+        const targetId = (spell?.is_attack || spell?.is_save) ? "goblin_1" : "player_1";
+
+        sendAction({
+            action: "cast_spell",
+            spell_id: spellId,
+            attacker_id: "player_1",
+            target_id: targetId,
+            // Backend will fill in details from Registry
+        });
+    };
+
+
     return (
         <div className="flex flex-col h-screen bg-[#0d0d0f] text-[#e0e0e4]">
             {/* Top Bar */}
@@ -140,9 +200,11 @@ export default function GamePage() {
                 {/* LEFT PANEL — Story Log (The Chronicle) */}
                 <div className="w-[45%] border-r border-[#2a2a2d] bg-[#111113] flex flex-col">
                     <StoryLog
-                        entries={narrative}
-                        currentText={currentNarrative}
-                        isStreaming={isStreaming}
+                        entries={narrative.map((text, i) => ({
+                            id: `entry-${i}`,
+                            type: 'narrative',
+                            text
+                        }))}
                     />
                 </div>
 
@@ -154,8 +216,9 @@ export default function GamePage() {
                         hp={playerHp}
                         maxHp={playerMaxHp}
                         ac={playerAc}
-                        conditions={[]}
+                        conditions={combatants.find(c => c.id === "player_1")?.conditions || []}
                         lastRoll={
+
                             lastDiceResult
                                 ? {
                                     notation: lastDiceResult.notation,
@@ -171,8 +234,9 @@ export default function GamePage() {
                         hp={enemyHp}
                         maxHp={enemyMaxHp}
                         ac={enemyAc}
-                        conditions={enemyHp <= 0 ? ["muerto"] : []}
+                        conditions={[...(targets["goblin_1"]?.conditions || []), ...(enemyHp <= 0 ? ["muerto"] : [])]}
                     />
+
 
                     {/* Action Buttons */}
                     <div className="space-y-2 mt-auto">
@@ -268,11 +332,75 @@ export default function GamePage() {
                         Grimorio
                     </h2>
 
+                    {/* Tabs */}
+                    <div className="flex border-b border-[#2a2a2d]">
+                        <button
+                            onClick={() => setActiveTab("inventory")}
+                            className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider ${activeTab === "inventory" ? "text-white border-b-2 border-[#c5a059]" : "text-[#6b6b75] hover:text-[#b0b0b8]"}`}
+                        >
+                            Mochila
+                        </button>
+                        <button
+                            onClick={() => setActiveTab("grimoire")}
+                            className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider ${activeTab === "grimoire" ? "text-white border-b-2 border-[#c5a059]" : "text-[#6b6b75] hover:text-[#b0b0b8]"}`}
+                        >
+                            Grimorio
+                        </button>
+                        <button
+                            onClick={() => setActiveTab("bestiary")}
+                            className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider ${activeTab === "bestiary" ? "text-white border-b-2 border-[#c5a059]" : "text-[#6b6b75] hover:text-[#b0b0b8]"}`}
+                        >
+                            Bestiario
+                        </button>
+                    </div>
+
+
                     {/* Initiative Tracker */}
                     <InitiativeTracker
                         combatants={combatants}
                         currentRound={currentRound}
+                        selectedId={selectedCombatantId}
+                        onSelect={setSelectedCombatantId}
                     />
+
+                    {/* Selected Monster Actions Panel */}
+                    {selectedCombatant && !selectedCombatant.isPlayer && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            className="rounded-lg border border-red-900/50 bg-red-950/20 p-3 space-y-3"
+                        >
+                            <div className="flex justify-between items-center border-b border-red-900/30 pb-2">
+                                <h3 className="text-sm font-bold text-red-400 uppercase tracking-wider">
+                                    {selectedCombatant.name}
+                                </h3>
+                                <span className="text-[10px] text-red-500/80">AC {selectedCombatant.ac} • HP {selectedCombatant.hp_current}/{selectedCombatant.hp_max}</span>
+                            </div>
+
+                            <div className="space-y-2">
+                                <p className="text-[10px] uppercase text-[#6b6b75] font-bold">Acciones</p>
+                                {selectedCombatant.actions && selectedCombatant.actions.length > 0 ? (
+                                    selectedCombatant.actions.map((action, idx) => (
+                                        <button
+                                            key={idx}
+                                            onClick={() => handleMonsterAttack(selectedCombatant.id, "player_1", idx, action.name)}
+                                            className="w-full flex justify-between items-center p-2 rounded bg-red-900/10 hover:bg-red-900/30 border border-red-900/30 text-xs transition-colors group"
+                                        >
+                                            <div className="flex flex-col items-start">
+                                                <span className="font-bold text-red-200 group-hover:text-white">{action.name}</span>
+                                                <span className="text-[10px] text-red-400/60 italic">{action.desc?.slice(0, 40)}...</span>
+                                            </div>
+                                            <span className="font-mono text-red-300 font-bold bg-red-950/50 px-1 rounded">
+                                                {action.attack_bonus >= 0 ? `+${action.attack_bonus}` : action.attack_bonus}
+                                            </span>
+                                        </button>
+                                    ))
+                                ) : (
+                                    <p className="text-xs text-[#6b6b75] italic">Sin acciones disponibles.</p>
+                                )}
+                            </div>
+                        </motion.div>
+                    )}
 
                     {/* Last Fact Packet Display */}
                     {lastFactPacket && (
@@ -308,7 +436,7 @@ export default function GamePage() {
                                         {lastFactPacket.hit ? "✓ SÍ" : "✗ NO"}
                                     </span>
                                 </div>
-                                {lastFactPacket.hit && (
+                                {!!lastFactPacket.hit && (
                                     <div className="flex justify-between">
                                         <span className="text-[#6b6b75]">Daño</span>
                                         <span className="text-[#e74c3c] font-bold">
@@ -317,7 +445,7 @@ export default function GamePage() {
                                         </span>
                                     </div>
                                 )}
-                                {lastFactPacket.critical && (
+                                {!!lastFactPacket.critical && (
                                     <div className="text-center mt-2">
                                         <span className="px-2 py-1 rounded bg-[#c5a059]/20 text-[#c5a059] text-[10px] font-bold uppercase tracking-widest">
                                             ★ Golpe Crítico ★
@@ -348,45 +476,89 @@ export default function GamePage() {
                     </div>
 
                     {/* SRD Reference Placeholder */}
-                    {/* Inventory */}
-                    <div className="rounded-lg border border-[#2a2a2d] bg-[#1a1a1d] p-3 space-y-2 max-h-60 overflow-y-auto">
-                        <p className="text-[10px] font-bold tracking-widest uppercase text-[#6b6b75]">
-                            Inventario ({inventory.length})
-                        </p>
-                        <div className="space-y-1 text-xs">
-                            {inventory.length === 0 ? (
-                                <span className="text-[#6b6b75] italic">Vacío...</span>
-                            ) : (
-                                inventory.map((item) => (
-                                    <div key={item.instance_id} className="flex justify-between items-center group p-1 hover:bg-[#2a2a2d] rounded cursor-default">
-                                        <div className="flex flex-col">
-                                            <span className={`transition-colors ${item.location === 'main_hand' ? 'text-green-500 font-bold' : 'text-[#b0b0b8] group-hover:text-white'}`}>
-                                                {item.name}
-                                                {item.location === 'main_hand' && " (E)"}
-                                            </span>
-                                        </div>
+                    {/* Tab Content */}
+                    <div className="rounded-lg border border-[#2a2a2d] bg-[#1a1a1d] p-3 space-y-2 max-h-[400px] overflow-y-auto">
+                        {activeTab === "inventory" ? (
+                            <div className="space-y-1 text-xs">
+                                <p className="text-[10px] font-bold tracking-widest uppercase text-[#6b6b75] mb-2">
+                                    Mochila ({inventory.length})
+                                </p>
+                                {inventory.length === 0 ? (
+                                    <span className="text-[#6b6b75] italic">Vacío...</span>
+                                ) : (
+                                    inventory.map((item) => (
+                                        <div key={item.instance_id} className="flex justify-between items-center group p-1 hover:bg-[#2a2a2d] rounded cursor-default">
+                                            <div className="flex flex-col">
+                                                <span className={`transition-colors ${item.location === 'main_hand' ? 'text-green-500 font-bold' : 'text-[#b0b0b8] group-hover:text-white'}`}>
+                                                    {item.name}
+                                                    {item.location === 'main_hand' && " (E)"}
+                                                </span>
+                                            </div>
 
-                                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            {item.location === 'main_hand' ? (
-                                                <button
-                                                    onClick={() => handleUnequip(item.instance_id)}
-                                                    className="text-[10px] uppercase text-red-400 hover:text-red-300 border border-red-500/30 px-1 rounded"
-                                                >
-                                                    Unequip
-                                                </button>
-                                            ) : (
-                                                <button
-                                                    onClick={() => handleEquip(item.instance_id)}
-                                                    className="text-[10px] uppercase text-green-400 hover:text-green-300 border border-green-500/30 px-1 rounded"
-                                                >
-                                                    Equip
-                                                </button>
-                                            )}
+                                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                {item.location === 'main_hand' ? (
+                                                    <button
+                                                        onClick={() => handleUnequip(item.instance_id)}
+                                                        className="text-[10px] uppercase text-red-400 hover:text-red-300 border border-red-500/30 px-1 rounded"
+                                                    >
+                                                        Unequip
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => handleEquip(item.instance_id)}
+                                                        className="text-[10px] uppercase text-green-400 hover:text-green-300 border border-green-500/30 px-1 rounded"
+                                                    >
+                                                        Equip
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
+                                    ))
+                                )}
+                            </div>
+                        ) : activeTab === "grimoire" ? (
+                            <SpellBook spells={spells} onCast={handleCastSpell} />
+                        ) : (
+                            <div className="space-y-3">
+
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={monsterQuery}
+                                        onChange={(e) => setMonsterQuery(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleSearchMonsters()}
+                                        placeholder="Buscar monstruo (e.g. Orc)..."
+                                        className="w-full bg-[#0d0d0f] border border-[#2a2a2d] rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-[#c5a059]"
+                                    />
+                                    <button
+                                        onClick={handleSearchMonsters}
+                                        className="bg-[#2a2a2d] hover:bg-[#3a3a3d] text-white px-2 py-1 rounded text-xs"
+                                    >
+                                        🔍
+                                    </button>
+                                </div>
+
+                                <div className="space-y-1">
+                                    {monsterSearchResults.map((m) => (
+                                        <div key={m.id} className="flex justify-between items-center p-2 bg-[#0d0d0f] rounded border border-[#2a2a2d] hover:border-[#c5a059]/50 transition-colors">
+                                            <div className="flex flex-col">
+                                                <span className="text-[#e0e0e4] font-bold text-xs">{m.name}</span>
+                                                <span className="text-[10px] text-[#6b6b75]">CR {m.cr} • {m.type} • HP {m.hp}</span>
+                                            </div>
+                                            <button
+                                                onClick={() => handleAddCombatant(m)}
+                                                className="text-[#c5a059] hover:text-white text-xs border border-[#c5a059]/30 hover:bg-[#c5a059]/20 px-2 py-1 rounded uppercase font-bold"
+                                            >
+                                                Add
+                                            </button>
+                                        </div>
+                                    ))}
+                                    {monsterSearchResults.length === 0 && monsterQuery && (
+                                        <p className="text-[10px] text-[#6b6b75] italic text-center">No hay resultados.</p>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

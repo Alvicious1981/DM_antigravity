@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from engine.combat import resolve_attack, resolve_saving_throw, AttackResult
+from engine.combat import resolve_attack, resolve_saving_throw, resolve_aoe_spell, AttackResult
 from engine.dice import DiceResult
 
 
@@ -235,4 +235,124 @@ class TestResolveSavingThrow:
                 assert result.save_success is False
                 assert result.damage_total == 6
                 assert result.target_remaining_hp == 4
+
+class TestCombatHardening:
+    """Tests for critical edge cases: resistances, rounding, and advantage."""
+
+    def test_resistance_rounding_down(self):
+        """D&D 5e: Damage is halved and rounded down (SRD 5.1)."""
+        # Damage: 11
+        with patch("engine.combat.d20", return_value=_fake_dice_result(15, 5)):
+            with patch("engine.combat.damage", return_value=_fake_damage_result((6, 5), 0)):
+                result = resolve_attack(
+                    attacker_id="player",
+                    target_id="resister",
+                    attack_bonus=5,
+                    target_ac=10,
+                    damage_dice_sides=6,
+                    damage_dice_count=2,
+                    damage_modifier=0,
+                    damage_type="fire",
+                    target_current_hp=20,
+                    target_resistances=["fire"]
+                )
+                assert result.damage_total == 5  # 11 // 2 = 5
+
+    def test_immunity_zero_damage(self):
+        """Immunities should result in zero damage."""
+        with patch("engine.combat.d20", return_value=_fake_dice_result(15, 5)):
+            with patch("engine.combat.damage", return_value=_fake_damage_result((6, 6), 5)):
+                result = resolve_attack(
+                    attacker_id="player",
+                    target_id="immune_target",
+                    attack_bonus=5,
+                    target_ac=10,
+                    damage_dice_sides=6,
+                    damage_dice_count=2,
+                    damage_modifier=5,
+                    damage_type="cold",
+                    target_current_hp=20,
+                    target_immunities=["cold"]
+                )
+                assert result.damage_total == 0
+
+    @patch("engine.combat.d20")
+    def test_advantage_picks_highest(self, mock_d20):
+        """Advantage should pick the higher natural roll."""
+        # Mock d20 to return 5 then 18
+        mock_d20.side_effect = [_fake_dice_result(5, 5), _fake_dice_result(18, 5)]
+        
+        result = resolve_attack(
+            attacker_id="player",
+            target_id="target",
+            attack_bonus=5,
+            target_ac=15,
+            damage_dice_sides=6,
+            damage_dice_count=1,
+            damage_modifier=0,
+            damage_type="slashing",
+            target_current_hp=20,
+            advantage=True
+        )
+        assert result.roll_natural == 18
+        assert result.hit is True
+
+    @patch("engine.combat.d20")
+    def test_disadvantage_picks_lowest(self, mock_d20):
+        """Disadvantage should pick the lower natural roll."""
+        # Mock d20 to return 18 then 5
+        mock_d20.side_effect = [_fake_dice_result(18, 5), _fake_dice_result(5, 5)]
+        
+        result = resolve_attack(
+            attacker_id="player",
+            target_id="target",
+            attack_bonus=5,
+            target_ac=15,
+            damage_dice_sides=6,
+            damage_dice_count=1,
+            damage_modifier=0,
+            damage_type="slashing",
+            target_current_hp=20,
+            disadvantage=True
+        )
+        assert result.roll_natural == 5
+        assert result.hit is False
+
+class TestAoEResolution:
+    """Tests for resolve_aoe_spell() logic."""
+
+    def test_aoe_fireball_multi_target(self):
+        """Fireball targets multiple enemies, rolls damage once."""
+        target_ids = ["goblin_1", "goblin_2"]
+        targets_hp = {"goblin_1": 10, "goblin_2": 10}
+        targets_saves = {"goblin_1": 0, "goblin_2": 5} # 1 fails, 1 succeeds maybe
+        
+        # d20 for saves: goblin 1 rolls 5, goblin 2 rolls 18
+        with patch("engine.combat.d20") as mock_d20:
+            mock_d20.side_effect = [_fake_dice_result(5, 0), _fake_dice_result(18, 5)]
+            # Damage: 8d6 -> all 4s -> 32
+            with patch("engine.combat.damage", return_value=_fake_damage_result((4,4,4,4,4,4,4,4), 0)):
+                results = resolve_aoe_spell(
+                    attacker_id="wizard",
+                    target_ids=target_ids,
+                    save_dc=15,
+                    save_stat="dex",
+                    damage_dice_sides=6,
+                    damage_dice_count=8,
+                    damage_modifier=0,
+                    damage_type="fire",
+                    targets_current_hp=targets_hp,
+                    targets_save_bonuses=targets_saves
+                )
+                
+                assert len(results) == 2
+                # Goblin 1: 5 < 15 (Fail) -> 32 damage
+                assert results[0].target_id == "goblin_1"
+                assert results[0].save_success is False
+                assert results[0].damage_total == 32
+                
+                # Goblin 2: 18+5=23 >= 15 (Success) -> 16 damage
+                assert results[1].target_id == "goblin_2"
+                assert results[1].save_success is True
+                assert results[1].damage_total == 16
 

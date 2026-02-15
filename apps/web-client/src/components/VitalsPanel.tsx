@@ -12,7 +12,7 @@ interface VitalsPanelProps {
     hp: number;
     maxHp: number;
     ac: number;
-    conditions?: string[];
+    conditions?: (string | { condition_id: string })[];
     lastRoll?: { notation: string; total: number } | null;
 }
 
@@ -59,7 +59,7 @@ export default function VitalsPanel({
             <div className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                     <span className="text-[#6b6b75]">HP</span>
-                    <span style={{ color: hpColor }}>
+                    <span data-testid="hp-values" style={{ color: hpColor }}>
                         {hp} / {maxHp}
                     </span>
                 </div>
@@ -92,19 +92,22 @@ export default function VitalsPanel({
             {/* Conditions */}
             {conditions.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
-                    {conditions.map((condition) => (
-                        <span
-                            key={condition}
-                            className="px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded border"
-                            style={{
-                                borderColor: "#8b5cf6",
-                                color: "#a78bfa",
-                                backgroundColor: "rgba(139, 92, 246, 0.1)",
-                            }}
-                        >
-                            {condition}
-                        </span>
-                    ))}
+                    {conditions.map((condition, idx) => {
+                        const label = typeof condition === 'string' ? condition : condition.condition_id;
+                        return (
+                            <span
+                                key={`${label}-${idx}`}
+                                className="px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded border"
+                                style={{
+                                    borderColor: "#8b5cf6",
+                                    color: "#a78bfa",
+                                    backgroundColor: "rgba(139, 92, 246, 0.1)",
+                                }}
+                            >
+                                {label}
+                            </span>
+                        );
+                    })}
                 </div>
             )}
 

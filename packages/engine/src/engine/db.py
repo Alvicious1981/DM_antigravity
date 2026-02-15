@@ -21,7 +21,7 @@ def get_db() -> sqlite3.Connection:
     """
     global _db
     if _db is None:
-        _db = sqlite3.connect(str(DB_PATH))
+        _db = sqlite3.connect(str(DB_PATH), check_same_thread=False)
         _db.row_factory = sqlite3.Row
     return _db
 

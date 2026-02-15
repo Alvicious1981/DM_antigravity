@@ -68,7 +68,7 @@ La selección de tecnologías no es arbitraria; cada componente ha sido elegido 
 | Componente | Tecnología Seleccionada | Justificación Técnica y Soberana | Fuente |
 | :---- | :---- | :---- | :---- |
 | **Frontend (The Visage)** | **Next.js 14+ (App Router)** | Necesitamos un renderizado híbrido (Server Components para SEO/Velocidad inicial, Client Components para interactividad). El ecosistema de React permite animaciones complejas (Framer Motion) y gestión de estado avanzada. |  |
-| **Estilos & UI** | **Tailwind CSS \+ Shadcn/UI** | Permite una personalización extrema requerida para la estética "Dark Fantasy" (\#1a1a1d, \#c5a059) manteniendo un código mantenible y responsivo. |  |
+| **Estilos & UI** | **Tailwind CSS \+ Custom "Stitch" Design System** | La estética "Dark Fantasy" / "Abyss" se implementa mediante tokens de diseño personalizados sobre Tailwind, priorizando la inmersión sobre componentes estándar. |  |
 | **Backend (The Engine)** | **FastAPI (Python 3.12+)** | Python es el lenguaje nativo de la IA. FastAPI ofrece el mayor rendimiento, tipado fuerte (Pydantic) para validación de datos SRD, y soporte nativo para asincronía (Websockets). |  |
 | **Protocolo de Sincronización** | **AG-UI (Agent-User Interaction)** | REST es insuficiente. Necesitamos Websockets bidireccionales para el "streaming" de componentes UI y parches de estado (JSON Patch) en tiempo real. |  |
 | **Base de Datos** | **PostgreSQL (Supabase)** | Modelo relacional robusto para reglas estrictas (SQLModel) \+ Capacidad vectorial (pgvector) para la memoria semántica y el RAG. |  |
@@ -77,7 +77,7 @@ La selección de tecnologías no es arbitraria; cada componente ha sido elegido 
 ### **3.2. Estructura del Monorepo Soberano**
 
 El proyecto se organiza para facilitar el desarrollo agéntico, separando claramente la lógica de reglas (inmutable) de la lógica de aplicación y la configuración de agentes.  
-/dungeon-cortex-monorepo ├──.agent/ \# Configuración y Cerebro de Google Antigravity │ ├── skills/ \# Habilidades modulares (Narrator, Mechanic, Cartographer) │ │ ├── combat/ \# Lógica de combate y resolución │ │ ├── map/ \# Control de Azgaar y Playwright │ │ └── inventory/ \# Generación de loot y transacciones │ └── workflows/ \# Flujos de trabajo automatizados (CI/CD agéntico) ├── apps/ │ ├── web-client/ \# Next.js 14 (Frontend \- The Visage) │ │ ├── src/components/ \# PaperDoll, StoryLog, HexMap, VitalsPanel │ │ ├── src/hooks/ \# useAgentState (Lógica cliente AG-UI) │ │ └── tailwind.config.js \# Configuración de paleta Dark Fantasy │ └── docs/ \# Documentación técnica viva (este manifiesto) ├── packages/ │ ├── engine/ \# Lógica pura D\&D 5e (Python \- The Engine) │ │ ├── combat.py \# Resolución determinista de ataques │ │ ├── dice.py \# RNG criptográficamente seguro │ │ └── rules.py \# Validadores contra SRD 5.1 │ ├── agent-core/ \# Orquestación LangGraph y Prompts del Triunvirato │ └── db-schema/ \# Modelos SQLModel compartidos (Single Source of Truth) ├── external-sources/ \# Submódulos Git (Referencia de Solo Lectura) │ ├── 5e-srd-api/ \# Reglas base estructuras (JSON) \[5e-bits\] │ ├── 5e-database-spanish/ \# Localización y traducción \[Magical20-ai\] │ └── fantasy-map-generator/ \# Lógica de generación de mapas \[Azgaar\] └── PROJECT\_MANIFESTO.md \# ESTE ARCHIVO (La Ley)
+/dungeon-cortex-monorepo ├──.agent/ \# Configuración y Cerebro de Google Antigravity │ ├── skills/ \# Habilidades modulares (Narrator, Mechanic, Cartographer) │ │ ├── combat/ \# Lógica de combate y resolución │ │ ├── map/ \# Control de Azgaar y Playwright │ │ └── inventory/ \# Generación de loot y transacciones │ └── workflows/ \# Flujos de trabajo automatizados (CI/CD agéntico) ├── apps/ │ ├── web-client/ \# Next.js 14 (Frontend \- The Visage) │ │ ├── src/components/ \# PaperDoll, StoryLog, HexMap, VitalsPanel │ │ ├── src/hooks/ \# useAgentState (Lógica cliente AG-UI) │ │ └── tailwind.config.js \# Configuración de paleta Dark Fantasy │ └── docs/ \# Documentación técnica viva (este manifiesto) ├── packages/ │ ├── engine/ \# Lógica pura D\&D 5e (Python \- The Engine) │ │ ├── combat.py \# Resolución determinista de ataques │ │ ├── dice.py \# RNG criptográficamente seguro │ │ └── rules.py \# Validadores contra SRD 5.1 │ ├── agent-core/ \# Orquestación LangGraph y Prompts del Triunvirato │ └── db-schema/ \# Modelos SQLModel compartidos (Single Source of Truth) ├── external-sources/ \# Submódulos Git (Referencia de Solo Lectura) │ ├── 5e-srd-api/ \# Reglas base estructuras (JSON) \[5e-bits\] │ ├── 5e-database-spanish/ \# Localización y traducción \[Magical20-ai\] │ ├── fantasy-map-generator/ \# Lógica de generación de mapas \[Azgaar\] │ └── stitch-mcp/ \# Proxy para integración de diseños Stitch └── PROJECT\_MANIFESTO.md \# ESTE ARCHIVO (La Ley)
 
 ## **4\. La Arquitectura de Agentes: El Triunvirato (The Triumvirate)**
 
@@ -139,7 +139,7 @@ Esta tabla actúa como la enciclopedia de reglas del sistema. Es poblada exclusi
     `"""Fuente de Verdad de Reglas (Read-Only)"""`  
     `id: str = Field(primary_key=True)       # ej: "spell_fireball", "monster_goblin"`  
     `type: str                               # "monster", "spell", "item", "class_feature"`  
-      
+
     `# Datos Crudos (Fuente: 5e-bits/5e-srd-api)`  
     `data_json: Dict = Field(sa_type=JSONB)`    
       
@@ -158,7 +158,7 @@ Esta tabla contiene el "estado vivo" del personaje. Los valores derivados (como 
     `"""Estado Vivo del Avatar"""`  
     `id: UUID = Field(primary_key=True)`  
     `name: str`  
-      
+
     `# Atributos Base (Inmutables salvo Level Up)`  
     `stats: Dict = Field(sa_type=JSONB)      # {str: 18, dex: 12, con: 14...}`  
       
@@ -185,8 +185,8 @@ El inventario en Dungeon Cortex no es una lista abstracta; es un sistema físico
     `"""Instancia física de un objeto"""`  
     `id: UUID = Field(primary_key=True)`  
     `character_id: UUID = Field(foreign_key="character.id")`  
-    `template_id: str = Field(foreign_key="srdmechanic.id")`   
-      
+    `template_id: str = Field(foreign_key="srdmechanic.id")`
+
     `# Lógica Visual y Posicional`  
     `location: ItemLocation`  
     `slot_type: Optional[str]    # "head", "main_hand", "torso", "ring_1"`  
@@ -384,4 +384,4 @@ En el entorno de **Google Antigravity**, la inteligencia del sistema no reside e
 
 #### **Obras citadas**
 
-1\. Getting Started with Google Antigravity, https://codelabs.developers.google.com/getting-started-google-antigravity 2\. Getting Started | D\&D 5e SRD API, https://5e-bits.github.io/docs/tutorials/beginner/getting-started 3\. Nano Banana Pro (Gemini 3 Pro image): 4K AI Image Generator | Higgsfield, https://higgsfield.ai/nano-banana-2-intro 4\. State Management \- Agent User Interaction Protocol, https://docs.ag-ui.com/concepts/state 5\. AG-UI: A Lightweight Protocol for Agent-User Interaction \- DataCamp, https://www.datacamp.com/tutorial/ag-ui 6\. Authoring Google Antigravity Skills, https://codelabs.developers.google.com/getting-started-with-antigravity-skills 7\. Google Antigravity Skills Update — The AI That Codes, Tests, and Learns for You \- Reddit, https://www.reddit.com/r/AISEOInsider/comments/1qt1tx8/google\_antigravity\_skills\_update\_the\_ai\_that/ 8\. Award Treasure and Magic Items in 5e: SlyFlourish.com, https://slyflourish.com/awarding\_magic\_items.html
+1\. Getting Started with Google Antigravity, <https://codelabs.developers.google.com/getting-started-google-antigravity> 2\. Getting Started | D\&D 5e SRD API, <https://5e-bits.github.io/docs/tutorials/beginner/getting-started> 3\. Nano Banana Pro (Gemini 3 Pro image): 4K AI Image Generator | Higgsfield, <https://higgsfield.ai/nano-banana-2-intro> 4\. State Management \- Agent User Interaction Protocol, <https://docs.ag-ui.com/concepts/state> 5\. AG-UI: A Lightweight Protocol for Agent-User Interaction \- DataCamp, <https://www.datacamp.com/tutorial/ag-ui> 6\. Authoring Google Antigravity Skills, <https://codelabs.developers.google.com/getting-started-with-antigravity-skills> 7\. Google Antigravity Skills Update — The AI That Codes, Tests, and Learns for You \- Reddit, <https://www.reddit.com/r/AISEOInsider/comments/1qt1tx8/google\_antigravity\_skills\_update\_the\_ai\_that/> 8\. Award Treasure and Magic Items in 5e: SlyFlourish.com, <https://slyflourish.com/awarding\_magic\_items.html>

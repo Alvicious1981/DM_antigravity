@@ -3,7 +3,7 @@ from uuid import uuid4
 from .db import get_db
 from .dice import roll
 
-def create_inventory_item(character_id: str, template_id: str, location: str = "backpack") -> dict:
+def create_inventory_item(character_id: str, template_id: str, location: str = "backpack", visual_asset_url: str = "") -> dict:
     """
     Create a new inventory item instance from an SRD template.
     """
@@ -56,7 +56,7 @@ def get_inventory(character_id: str) -> list[dict]:
     
     sql = """
     SELECT 
-        i.id, i.character_id, i.template_id, i.location, i.slot_type, i.current_charges,
+        i.id, i.character_id, i.template_id, i.location, i.slot_type, i.current_charges, i.visual_asset_url,
         s.data_json
     FROM inventory_item i
     LEFT JOIN srd_mechanic s ON i.template_id = s.id
@@ -77,11 +77,15 @@ def get_inventory(character_id: str) -> list[dict]:
             "location": row["location"],
             "slot_type": row["slot_type"],
             "charges": row["current_charges"],
-            "stats": srd_data # Embed full stats for frontend convenience
+            "stats": srd_data,
+            "visual_asset_url": row["visual_asset_url"],
+            "rarity": (srd_data.get("rarity") if isinstance(srd_data.get("rarity"), str) else srd_data.get("rarity", {}).get("name", "Common")) or "Common",
+            "attunement": True if srd_data.get("requires_attunement") else False
         }
         results.append(item)
         
     return results
+
 
 def generate_loot(cr: int = 1) -> list[str]:
     """
@@ -89,19 +93,72 @@ def generate_loot(cr: int = 1) -> list[str]:
     Returns a list of template_ids.
     """
     db = get_db()
+    import random
     
-    # Simple Logic for Phase 3f: 
-    # Fetch random items from srd_mechanic
-    # Higher CR = more items (very basic)
+    # Fetch all items to filter in python (dataset is small)
+    rows = db.execute("SELECT id, data_json FROM srd_mechanic WHERE type IN ('item', 'magic_item')").fetchall()
     
-    count = max(1, roll(1, 4).total + (cr // 5)) # 1d4 items
+    candidates = []
+    for row in rows:
+        data = json.loads(row["data_json"])
+        rarity_raw = data.get("rarity", "Common")
+        rarity = rarity_raw.get("name", "Common") if isinstance(rarity_raw, dict) else rarity_raw
+        candidates.append({"id": row["id"], "rarity": rarity})
     
-    # Get random items
-    # In a real system, we'd filter by rarity/tables.
-    sql = "SELECT id FROM srd_mechanic WHERE type IN ('item', 'magic_item') ORDER BY RANDOM() LIMIT ?"
+    if not candidates:
+        return []
+
+    # Simple Tier Logic
+    # CR 0-4: Common
+    # CR 5-10: Uncommon
+    # CR 11-16: Rare
+    # CR 17+: Very Rare / Legendary
+    target_rarity = "Common"
+    if cr >= 17: target_rarity = "Very Rare"
+    elif cr >= 11: target_rarity = "Rare"
+    elif cr >= 5: target_rarity = "Uncommon"
     
-    rows = db.execute(sql, (count,)).fetchall()
-    return [row["id"] for row in rows]
+    # Filter (allow lower tiers too)
+    possible = [c for c in candidates if c["rarity"] == target_rarity or c["rarity"] == "Common"]
+    if not possible:
+        possible = candidates # Fallback
+        
+    # Count: 1d4 + CR/5
+    count = max(1, roll(1, 4).total + (cr // 5))
+    
+    selected = random.choices(possible, k=count)
+    return [s["id"] for s in selected]
+
+def distribute_loot(target_character_id: str, item_ids: list[str]) -> list[dict]:
+    """
+    Add list of items to character's inventory and return the full item objects.
+    """
+    db = get_db()
+    created_items = []
+    
+    for template_id in item_ids:
+        # Create
+        new_item = create_inventory_item(target_character_id, template_id)
+        
+        # Hydrate with SRD data for the event
+        row = db.execute("SELECT data_json FROM srd_mechanic WHERE id = ?", (template_id,)).fetchone()
+        srd_data = json.loads(row["data_json"]) if row and row["data_json"] else {}
+        
+        full_item = {
+            "instance_id": new_item["id"],
+            "template_id": template_id,
+            "name": srd_data.get("name", "Unknown Item"),
+            "location": new_item["location"],
+            "slot_type": None, # Default
+            "charges": 0,
+            "stats": srd_data,
+            "visual_asset_url": "",
+            "rarity": srd_data.get("rarity", {}).get("name", "Common") if isinstance(srd_data.get("rarity"), dict) else srd_data.get("rarity", "Common"),
+            "attunement": True if srd_data.get("requires_attunement") else False
+        }
+        created_items.append(full_item)
+        
+    return created_items
 
 def equip_item(character_id: str, item_id: str, slot: str) -> dict:
     """
