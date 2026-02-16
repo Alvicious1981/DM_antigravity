@@ -39,6 +39,8 @@ const narrativeChunkHandler: MessageHandler = (data: NarrativeChunk, bufferRef) 
 const statePatchHandler: MessageHandler = (data: StatePatch) => (prev) => {
     const newTargets = { ...prev.targets };
     const newCombatants = [...prev.combatants];
+    let shouldShake = false;
+
 
     for (const p of data.patches) {
         const parts = p.path.split("/").filter(Boolean);
@@ -57,6 +59,7 @@ const statePatchHandler: MessageHandler = (data: StatePatch) => (prev) => {
                 if (diff < 0) {
                     // Damage
                     spawnFloatingText(`${diff}`, window.innerWidth / 2, window.innerHeight / 2, "red");
+                    shouldShake = true;
                 } else if (diff > 0) {
                     // Healing
                     spawnFloatingText(`+${diff}`, window.innerWidth / 2, window.innerHeight / 2, "green");
@@ -85,6 +88,7 @@ const statePatchHandler: MessageHandler = (data: StatePatch) => (prev) => {
         targets: newTargets,
         combatants: newCombatants,
         lastFactPacket: data.fact_packet || prev.lastFactPacket,
+        screenShake: shouldShake || prev.screenShake,
     };
 };
 

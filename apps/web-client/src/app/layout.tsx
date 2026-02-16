@@ -31,6 +31,8 @@ export const metadata: Metadata = {
     "A D&D 5e Simulated Reality Engine where the AI narrates, but the Code resolves.",
 };
 
+import FloatingTextLayer from "@/components/FloatingTextLayer";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -41,6 +43,7 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${cinzel.variable} ${geistMono.variable} antialiased bg-abyss text-bone`}
       >
+        <FloatingTextLayer />
         {children}
       </body>
     </html>

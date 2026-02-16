@@ -42,7 +42,11 @@ export default function Home() {
       const res = await fetch('http://localhost:8000/api/game/new', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(characterData),
+        body: JSON.stringify({
+          name: characterData.name,
+          class_id: characterData.classId,
+          background_id: characterData.backgroundId
+        }),
       });
       const data = await res.json();
       setSession(data);

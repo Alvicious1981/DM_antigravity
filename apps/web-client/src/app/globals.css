@@ -182,6 +182,67 @@
     background-image: linear-gradient(0deg, rgba(0, 0, 0, 0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.2) 1px, transparent 1px);
     background-size: 4px 4px;
   }
+
+  /* Damage Types */
+  .text-damage-fire { color: #ef4444; text-shadow: 0 0 8px rgba(239, 68, 68, 0.4); }
+  .text-damage-cold { color: #3b82f6; text-shadow: 0 0 8px rgba(59, 130, 246, 0.4); }
+  .text-damage-lightning { color: #fbbf24; text-shadow: 0 0 8px rgba(251, 191, 36, 0.4); }
+  .text-damage-acid { color: #a3e635; text-shadow: 0 0 8px rgba(163, 230, 53, 0.4); }
+  .text-damage-poison { color: #22c55e; text-shadow: 0 0 8px rgba(34, 197, 94, 0.4); }
+  .text-damage-necrotic { color: #a855f7; text-shadow: 0 0 10px rgba(168, 85, 247, 0.5); }
+  .text-damage-radiant { color: #fde047; text-shadow: 0 0 12px rgba(253, 224, 71, 0.6); }
+  .text-damage-force { color: #818cf8; text-shadow: 0 0 8px rgba(129, 140, 248, 0.4); }
+  .text-damage-psychic { color: #f472b6; text-shadow: 0 0 8px rgba(244, 114, 182, 0.4); }
+}
+
+@keyframes shake {
+  0% { transform: translate(1px, 1px) rotate(0deg); }
+  10% { transform: translate(-1px, -2px) rotate(-1deg); }
+  20% { transform: translate(-3px, 0px) rotate(1deg); }
+  30% { transform: translate(3px, 2px) rotate(0deg); }
+  40% { transform: translate(1px, -1px) rotate(1deg); }
+  50% { transform: translate(-1px, 2px) rotate(-1deg); }
+  60% { transform: translate(-3px, 1px) rotate(0deg); }
+  70% { transform: translate(3px, 1px) rotate(-1deg); }
+  80% { transform: translate(-1px, -1px) rotate(1deg); }
+  90% { transform: translate(1px, 2px) rotate(0deg); }
+  100% { transform: translate(1px, -2px) rotate(-1deg); }
+}
+
+.animate-shake {
+  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+/* Diegetic Fatigue / Blood Vignette */
+@keyframes blood-pulse {
+  0% { box-shadow: inset 0 0 100px rgba(153, 27, 27, 0); }
+  50% { box-shadow: inset 0 0 150px rgba(153, 27, 27, 0.4); }
+  100% { box-shadow: inset 0 0 100px rgba(153, 27, 27, 0); }
+}
+
+.blood-vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  animation: blood-pulse 2s ease-in-out infinite;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #c5a059;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #a87f32;
 }
 
 /* Global base styles */

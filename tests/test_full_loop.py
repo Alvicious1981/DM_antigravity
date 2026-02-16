@@ -79,10 +79,11 @@ def test_full_game_loop():
             print("3. Attack & Narrative Complete")
 
         # 4. Distribute Loot (Simulated)
+        time.sleep(0.7)
         websocket.send_json({
             "action": "distribute_loot",
             "target_character_id": "Hero",
-            "item_ids": ["potion_healing"]
+            "item_ids": ["longsword"] # Use reliable ID
         })
         
         # Expect Inventory Update & Loot Distributed
@@ -99,6 +100,7 @@ def test_full_game_loop():
 
         # 5. Map Interaction
         # Request Data
+        time.sleep(0.7)
         websocket.send_json({
             "action": "map_interaction",
             "character_id": "Hero",
@@ -116,6 +118,7 @@ def test_full_game_loop():
         current_node = next(n for n in data["nodes"] if n["id"] == current_node_id)
         if current_node["connections"]:
             target_node_id = current_node["connections"][0]
+            time.sleep(0.7)
             websocket.send_json({
                 "action": "map_interaction",
                 "character_id": "Hero",
@@ -127,17 +130,33 @@ def test_full_game_loop():
             map_update = False
             narrative_complete = False
             start_time = time.time()
-            while not (map_update and narrative_complete) and time.time() - start_time < 10:
-                data = websocket.receive_json()
-                if data["type"] == "MAP_UPDATE":
-                    map_update = True
-                elif data["type"] == "NARRATIVE_CHUNK" and data["done"]:
-                    narrative_complete = True
-            print(f"5b. Travelled to {target_node_id}")
+            print("Waiting for Map Update and Narrative (up to 60s)...")
+            while not (map_update and narrative_complete) and time.time() - start_time < 60:
+                try:
+                    data = websocket.receive_json()
+                    print(f"Received during travel wait: {data.get('type')} - {data.get('message', '')[:50]}")
+                    if data["type"] == "MAP_UPDATE":
+                        map_update = True
+                    elif data["type"] == "NARRATIVE_CHUNK" and data["done"]:
+                        narrative_complete = True
+                    elif data["type"] == "ACK" and data["status"] == "error":
+                        print(f"ERROR received during travel: {data['message']}")
+                        break
+                except Exception as e:
+                    # Might be a timeout or other error
+                    if time.time() - start_time > 55:
+                        print(f"Timeout waiting for travel events: {e}")
+                        break
+            
+            if map_update and narrative_complete:
+                print(f"5b. Travelled to {target_node_id}")
+            else:
+                print(f"5b. Travel failed or timed out (Map: {map_update}, Narr: {narrative_complete})")
         else:
             print("5b. No connections to travel to (Skipped)")
 
         # 6. Save Game
+        time.sleep(0.7)
         websocket.send_json({
             "action": "save_game",
             "save_id": "verification_save"

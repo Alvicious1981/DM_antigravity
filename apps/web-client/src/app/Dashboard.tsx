@@ -10,11 +10,14 @@ import LootModal, { LootItem } from './LootModal';
 import ActionPanel from './ActionPanel';
 import StoryLog, { StoryEntry } from './StoryLog';
 import { useAgentState } from '../hooks/useAgentState';
+import InitiativeSidebar from '../components/InitiativeSidebar';
 
 interface DashboardProps {
     initialSession?: {
-        session_id: string;
-        roll: string;
+        save_id: string;
+        character: any;
+        location: string;
+        scene: string;
     };
 }
 
@@ -27,52 +30,79 @@ export default function Dashboard({ initialSession }: DashboardProps) {
         spells,
         monsterSearchResults,
         toasts,
+        currentNarrative,
+        isStreaming,
+        screenShake,
         removeToast,
         sendAction,
-        getSpells
+        getSpells,
+        clearScreenShake,
+        combatants
     } = useAgentState();
 
     const [activeTab, setActiveTab] = useState('story'); // story, inventory, map, spellbook, party, bestiary
     const [showDialogue, setShowDialogue] = useState(false);
     const [showLoot, setShowLoot] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    // Calculate player health for vignette
+    const player = combatants.find(c => c.isPlayer);
+    const isCriticalHealth = player && player.hp_max && player.hp_current
+        ? (player.hp_current / player.hp_max) < 0.25
+        : false;
+
+    // Handle screen shake reset
+    useEffect(() => {
+        if (screenShake) {
+            const timer = setTimeout(() => {
+                clearScreenShake();
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [screenShake, clearScreenShake]);
 
     // Auto-connect if session is provided
     useEffect(() => {
-        if (initialSession?.session_id && !connected) {
-            connect(initialSession.session_id);
+        if (initialSession?.save_id && !connected) {
+            connect(initialSession.save_id);
         }
     }, [initialSession, connected, connect]);
 
-    // Story Log State
-    // const [storyEntries, setStoryEntries] = useState<StoryEntry[]>([]); // Removed in favor of hook state
-    const [isProcessing, setIsProcessing] = useState(false);
-
     // Convert narrative strings to StoryEntries
-    const storyEntries: StoryEntry[] = narrative.map((text, index) => ({
-        id: `nar-${index}`,
-        type: text.startsWith('>') ? 'combat' : 'narrative',
-        text: text,
-        timestamp: new Date().toISOString() // Approximate
-    }));
+    const storyEntries: StoryEntry[] = [
+        // Seed initial session scene if present
+        ...(initialSession?.scene ? [{
+            id: 'init-scene',
+            type: 'narrative' as const,
+            text: initialSession.scene,
+            timestamp: new Date().toISOString()
+        }] : []),
+        ...narrative.map((text, index) => ({
+            id: `nar-${index}`,
+            type: (text.startsWith('>') ? 'combat' : 'narrative') as 'combat' | 'narrative',
+            text: text,
+            timestamp: new Date().toISOString() // Approximate
+        }))
+    ];
+
+    // Add streaming entry if active
+    if (isStreaming && currentNarrative) {
+        storyEntries.push({
+            id: 'current-narrative',
+            type: 'narrative' as const,
+            text: currentNarrative,
+            timestamp: new Date().toISOString()
+        });
+    }
 
     const handleAction = (actionType: string, payload?: string) => {
         console.log(`Action: ${actionType}, Payload: ${payload}`);
-        // setIsProcessing(true); // Let the WebSocket state handle loading implicitly or add a specific state?
-
         if (actionType === 'text') {
             sendAction({ type: 'narrative_action', content: payload });
         } else {
-            // Map standard actions
-            const actionMap: Record<string, string> = {
-                'attack': 'attack',
-                'cast': 'cast_spell',
-                'check': 'skill_check'
-            };
-            // rudimentary mapping, needs refinement based on ActionPanel output
             sendAction({ type: 'action', action: actionType });
         }
     };
-
 
     // Mock Data for Demo
     const mockLoot: LootItem[] = [
@@ -94,7 +124,10 @@ export default function Dashboard({ initialSession }: DashboardProps) {
     );
 
     return (
-        <div className="flex h-screen w-full bg-[#0f0f12] text-[#e0e0e4] font-serif overflow-hidden relative selection:bg-[#c5a059]/30 selection:text-white">
+        <div className={`flex h-screen w-full bg-[#0f0f12] text-[#e0e0e4] font-serif overflow-hidden relative selection:bg-[#c5a059]/30 selection:text-white ${screenShake ? 'animate-shake' : ''}`}>
+
+            {/* 0. Diegetic Overlays */}
+            {isCriticalHealth && <div className="blood-vignette" />}
 
             {/* Sidebar Navigation */}
             <aside className="hidden md:flex flex-col items-center gap-4 py-6 w-20 border-r border-[#2a2a2d] bg-[#141416] z-20">
@@ -114,7 +147,6 @@ export default function Dashboard({ initialSession }: DashboardProps) {
                 </div>
 
                 <div className="mt-auto pb-4 flex flex-col gap-4">
-                    {/* Status Indicators */}
                     <div
                         className={`w-2 h-2 rounded-full mx-auto animate-pulse shadow-[0_0_5px] ${connected ? 'bg-green-500 shadow-lime-500' : 'bg-red-500 shadow-red-500'}`}
                         title={connected ? "Server Connected" : "Disconnected"}
@@ -132,7 +164,6 @@ export default function Dashboard({ initialSession }: DashboardProps) {
 
             {/* Main Content Area */}
             <main className="flex-1 flex flex-col h-full relative z-10 pt-14 md:pt-0">
-
                 {/* 1. Content Area (Story Log takes priority) */}
                 <div className="flex-1 relative overflow-hidden flex flex-col min-h-0 bg-[#0f0f12]">
                     {activeTab === 'story' ? (
@@ -162,8 +193,10 @@ export default function Dashboard({ initialSession }: DashboardProps) {
                         suggestions={["Investigate the Altar", "Look for traps", "Cast 'Detect Magic'", "Stealth check"]}
                     />
                 </div>
-
             </main>
+
+            {/* 3. Initiative Sidebar (Slides in during combat) */}
+            <InitiativeSidebar />
 
             {/* Overlays */}
             {showDialogue && (

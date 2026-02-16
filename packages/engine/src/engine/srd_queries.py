@@ -119,9 +119,6 @@ def get_spell_mechanics(spell_id: str) -> dict:
     """
     Get core mechanics for a spell.
     """
-    with open("debug_srd.log", "a") as f:
-        f.write(f"Entering get_spell_mechanics for {spell_id}\\n")
-
     data = get_srd_mechanic(spell_id)
     
     mechanics = {
@@ -157,13 +154,8 @@ def get_spell_mechanics(spell_id: str) -> dict:
         if levels:
             base_damage_str = damage_slots[str(levels[0])]
     
-    with open("debug_srd.log", "a") as f:
-        f.write(f"DEBUG: Initial base_damage_str: '{base_damage_str}'\\n")
-
     # Data Source 2: Regex extraction from Description (Open5e Fallback)
     if base_damage_str == "0d0":
-        with open("debug_srd.log", "a") as f:
-            f.write(f"DEBUG: base_damage_str is 0d0. Checking fallbacks.\\n")
         if "damage_dice" in damage_info:
              base_damage_str = damage_info["damage_dice"]
         elif "dice" in data:
@@ -171,11 +163,9 @@ def get_spell_mechanics(spell_id: str) -> dict:
         else:
             # Last Resort: Regex "8d6" from desc
             desc = data.get("desc", "")
-            # print(f"DEBUG: Desc length: {len(desc)}")
             match = re.search(r"(\d+)d(\d+)", desc)
             if match:
                 base_damage_str = match.group(0)
-                print(f"DEBUG: Regex matched: {base_damage_str}")
                 # Try to find damage type near it? Too complex.
                 # Just default to force or try simplistic lookahead
                 if "fire" in desc.lower(): mechanics["damage_type"] = "fire"
@@ -183,8 +173,6 @@ def get_spell_mechanics(spell_id: str) -> dict:
                 elif "lightning" in desc.lower(): mechanics["damage_type"] = "lightning"
                 elif "necrotic" in desc.lower(): mechanics["damage_type"] = "necrotic"
                 elif "radiant" in desc.lower(): mechanics["damage_type"] = "radiant"
-            else:
-                print("DEBUG: Regex failed to match.")
 
     c, s, m = parse_dice_string(base_damage_str)
     mechanics["damage_dice_count"] = c
@@ -319,73 +307,7 @@ def _apply_monster_errata(monster_id: str, stats: dict) -> dict:
         
     return stats
 
-def get_spell_mechanics(spell_id: str) -> dict:
-    """
-    Get core mechanics for a spell:
-    - Saving Throw (stat, DC type)
-    - Damage (dice count, sides, type)
-    - Attack Roll (bool)
-    """
-    data = get_srd_mechanic(spell_id)
-    
-    mechanics = {
-        "name": data.get("name", "Unknown Spell"),
-        "level": data.get("level", 1),
-        "components": data.get("components", []),
-        "requires_concentration": data.get("concentration", False),
-    }
 
-    # Handle School (Dict vs String)
-    school_raw = data.get("school", {})
-    if isinstance(school_raw, dict):
-        mechanics["school"] = school_raw.get("index", "evocation")
-    else:
-        mechanics["school"] = str(school_raw).lower()
-
-    # Parse Damage
-    # SRD format: "damage": {"damage_at_slot_level": {"3": "8d6"}, "damage_type": {"index": "fire"}}
-    damage_info = data.get("damage", {})
-    
-    # Handle Damage Type
-    dtype_raw = damage_info.get("damage_type", {})
-    if isinstance(dtype_raw, dict):
-        mechanics["damage_type"] = dtype_raw.get("index", "force")
-    else:
-         mechanics["damage_type"] = str(dtype_raw).lower()
-    
-    # damage_at_slot_level is key for scalable damage
-    damage_slots = damage_info.get("damage_at_slot_level", {})
-    base_damage_str = "0d0"
-    
-    # Find list of damage keys (levels) and pick the lowest as base
-    if damage_slots:
-        levels = sorted([int(k) for k in damage_slots.keys()])
-        if levels:
-            base_damage_str = damage_slots[str(levels[0])]
-    
-    c, s, m = parse_dice_string(base_damage_str)
-    mechanics["damage_dice_count"] = c
-    mechanics["damage_dice_sides"] = s
-    mechanics["damage_modifier"] = m
-
-    # Parse Saving Throw
-    dc_info = data.get("dc", {})
-    if dc_info:
-        # Handle DC Type
-        dc_type_raw = dc_info.get("dc_type", {})
-        if isinstance(dc_type_raw, dict):
-             mechanics["save_stat"] = dc_type_raw.get("index", "dex")
-        else:
-             mechanics["save_stat"] = str(dc_type_raw).lower()
-             
-        mechanics["save_success"] = dc_info.get("dc_success", "half") # "half" or "none"
-    else:
-        mechanics["save_stat"] = None
-
-    # Attack Roll?
-    mechanics["requires_attack_roll"] = "attack_type" in data
-
-    return mechanics
 
 def search_monsters(query: str, limit: int = 10) -> list[dict]:
     """

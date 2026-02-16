@@ -72,13 +72,33 @@ function LogEntryItem({ entry }: { entry: StoryEntry }) {
     }
 
     if (entry.type === 'combat') {
+        const damageTypes = ['fire', 'cold', 'lightning', 'acid', 'poison', 'necrotic', 'radiant', 'force', 'psychic', 'thunder'];
+        let highlightedText: React.ReactNode = entry.text;
+
+        // Simple regex-based highlighting for prototype polish
+        // Format: "10 fire damage" -> "10 <span class='text-damage-fire'>fire</span> damage"
+        const parts = entry.text.split(/(\d+\s+(?:fire|cold|lightning|acid|poison|necrotic|radiant|force|psychic|thunder)\s+damage)/gi);
+
         return (
-            <div className="animate-fade-in bg-abyss border border-blood/30 p-4 rounded text-sm text-ash font-mono my-2 shadow-[0_0_10px_rgba(139,26,26,0.1)]">
+            <div className="animate-fade-in bg-abyss border border-blood/30 p-4 rounded text-sm font-mono my-2 shadow-[0_0_10px_rgba(139,26,26,0.1)]">
                 <div className="flex items-center gap-2 mb-1">
                     <span className="text-blood font-bold text-lg">⚔</span>
                     <span className="uppercase text-blood/80 text-xs tracking-wider font-bold">Combat Action</span>
                 </div>
-                {entry.text}
+                <div className="text-ash/90">
+                    {parts.map((part, i) => {
+                        const match = part.match(/(\d+)\s+(fire|cold|lightning|acid|poison|necrotic|radiant|force|psychic|thunder)\s+damage/i);
+                        if (match) {
+                            const [_, amount, type] = match;
+                            return (
+                                <span key={i} className={`font-bold text-damage-${type.toLowerCase()}`}>
+                                    {amount} {type} damage
+                                </span>
+                            );
+                        }
+                        return <span key={i}>{part}</span>;
+                    })}
+                </div>
             </div>
         );
     }
