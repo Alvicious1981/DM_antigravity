@@ -100,10 +100,14 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
             try:
                 data = await websocket.receive_json()
                 print(f"DEBUG: Received WebSocket message: {data}")
-                action_type = data.get("action")
+                action_type = data.get("action") or data.get("type")
 
                 if not action_type:
-                    raise ValueError("Missing 'action' field")
+                    raise ValueError("Missing 'action' or 'type' field")
+                
+                # Ignore connection metadata if it somehow slips into the loop
+                if action_type == "CONNECTION_REQUEST":
+                    continue
 
                 # --- Rate Limiting (§ STRIDE-D1) ---
                 import time
@@ -241,7 +245,7 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                             nodes=nodes,
                             current_node_id=str(current_pos)
                         ).model_dump(mode='json'))
-                        return
+                        continue
 
                     if payload.interaction_type == "travel":
                         if not payload.target_node_id:
@@ -265,7 +269,6 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                             ).model_dump(mode='json'))
                              continue
 
-                        # Travel successful
                         combatant_positions[payload.character_id] = payload.target_node_id
                         target_node = get_node(payload.target_node_id)
                         

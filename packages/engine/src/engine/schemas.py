@@ -250,15 +250,7 @@ class LogEvent(BaseEvent):
     level: Literal["info", "warning", "error", "success"] = "info"
 
 
-# Validated Map Models
-class MapNode(BaseModel):
-    id: str
-    name: str
-    type: str  # "city", "dungeon", "wilderness", "landmark"
-    coordinates: dict  # {"x": 50.0, "y": 50.0}
-    description: str
-    connections: List[str]
-    risk_level: int = 1
+from .maps import MapNode
 
 class MapDataEvent(BaseEvent):
     type: Literal["MAP_DATA"] = "MAP_DATA"

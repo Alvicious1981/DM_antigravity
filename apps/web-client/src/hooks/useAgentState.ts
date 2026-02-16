@@ -186,6 +186,7 @@ export interface GameState {
     };
     saveList: SaveInfo[];
     toasts: LogEvent[];
+    screenShake: boolean;
 }
 
 export interface SaveInfo {
@@ -219,6 +220,7 @@ export function useAgentState(wsUrl?: string) {
         },
         saveList: [],
         toasts: [],
+        screenShake: false,
     });
 
     const wsRef = useRef<WebSocket | null>(null);
@@ -330,6 +332,24 @@ export function useAgentState(wsUrl?: string) {
         }));
     }, []);
 
+    const triggerMapCapture = useCallback(async (nodeId: string) => {
+        try {
+            const response = await fetch(`http://localhost:8000/api/world/map/capture/${nodeId}`, {
+                method: "POST"
+            });
+            if (!response.ok) throw new Error("Capture failed");
+            const data = await response.json();
+            return data.image_url;
+        } catch (error) {
+            console.error("Map capture error:", error);
+            return null;
+        }
+    }, []);
+
+    const clearScreenShake = useCallback(() => {
+        setGameState((prev) => ({ ...prev, screenShake: false }));
+    }, []);
+
     return {
         ...gameState,
         connect,
@@ -338,6 +358,8 @@ export function useAgentState(wsUrl?: string) {
         getSpells,
         listSaves,
         requestMapData,
+        triggerMapCapture,
         removeToast,
+        clearScreenShake,
     };
 }

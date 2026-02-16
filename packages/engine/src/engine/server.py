@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .db import get_db, close_db
-from .routers import srd, combat, websocket, game
+from .routers import srd, combat, websocket, game, maps
 from .ai.chronos import ChronosClient
 from .ai.visual_vault import VisualVaultClient
 
@@ -21,12 +21,32 @@ async def lifespan(app: FastAPI):
     """Application lifecycle: startup and shutdown hooks."""
     db = get_db()
     
-    # Ensure game_saves table exists
+    # Ensure essential tables exist
     db.execute("""
         CREATE TABLE IF NOT EXISTS game_saves (
             save_id TEXT PRIMARY KEY,
             data_json TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS actors (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            type TEXT NOT NULL, -- person, monster, object
+            location_node_id TEXT, -- Added for map positioning
+            data_json TEXT NOT NULL DEFAULT '{}',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS items (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            actor_id TEXT, -- Owner ID
+            data_json TEXT NOT NULL DEFAULT '{}',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (actor_id) REFERENCES actors(id)
         )
     """)
     db.commit()
@@ -62,6 +82,7 @@ app.include_router(srd.router)
 app.include_router(combat.router)
 app.include_router(websocket.router)
 app.include_router(game.router)
+app.include_router(maps.router)
 
 
 # --- REST Endpoints ---
