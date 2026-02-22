@@ -26,6 +26,13 @@ export interface NarrativeChunk {
     done: boolean;
 }
 
+export interface NarrativeEvent {
+    type: "NARRATIVE_EVENT";
+    content: string;
+    event_type: "travel" | "discovery" | "encounter";
+    metadata?: Record<string, unknown>;
+}
+
 export interface StatePatch {
     type: "STATE_PATCH";
     patches: Array<{ op: string; path: string; value: unknown }>;
@@ -105,10 +112,12 @@ export interface InventoryItem {
     name: string;
     location: string;
     slot_type: string | null;
+    grid_index: number | null;
     charges: number;
     stats: Record<string, unknown>;
     rarity?: string;
     attunement?: boolean;
+    visual_asset_url?: string;
 }
 
 export interface InventoryUpdate {
@@ -186,7 +195,9 @@ export interface GameState {
     };
     saveList: SaveInfo[];
     toasts: LogEvent[];
+    visitedNodeIds: string[];
     screenShake: boolean;
+    selectedTargetId: string | null;
 }
 
 export interface SaveInfo {
@@ -220,13 +231,20 @@ export function useAgentState(wsUrl?: string) {
         },
         saveList: [],
         toasts: [],
+        visitedNodeIds: [],
         screenShake: false,
+        selectedTargetId: null,
     });
 
     const wsRef = useRef<WebSocket | null>(null);
     const narrativeBufferRef = useRef<string>("");
+    const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const reconnectAttemptsRef = useRef<number>(0);
+    const sessionIdRef = useRef<string>("default");
+    const roleRef = useRef<string>("player");
 
     const onConnectionEstablished = useCallback((event: AgUiEvent) => {
+        reconnectAttemptsRef.current = 0;
         setGameState(prev => ({
             ...prev,
             connected: true,
@@ -238,7 +256,9 @@ export function useAgentState(wsUrl?: string) {
     const connect = useCallback(
         (id: string = "default", role: string = "player", dmToken?: string) => {
             const sessionId = asSessionId(id);
-            let url = wsUrl || `ws://localhost:8000/ws/game/${sessionId}`;
+            sessionIdRef.current = id;
+            roleRef.current = role;
+            let url = wsUrl || `ws://127.0.0.1:8000/ws/game/${sessionId}`;
 
             // Append role and token if provided
             const params = new URLSearchParams();
@@ -271,6 +291,11 @@ export function useAgentState(wsUrl?: string) {
 
             ws.onclose = () => {
                 setGameState((prev) => ({ ...prev, connected: false }));
+                const delay = Math.min(1000 * 2 ** reconnectAttemptsRef.current, 30000);
+                reconnectAttemptsRef.current += 1;
+                reconnectTimeoutRef.current = setTimeout(() => {
+                    connect(sessionIdRef.current, roleRef.current);
+                }, delay);
             };
 
             ws.onerror = () => {
@@ -289,6 +314,11 @@ export function useAgentState(wsUrl?: string) {
     }, []);
 
     const disconnect = useCallback(() => {
+        if (reconnectTimeoutRef.current !== null) {
+            clearTimeout(reconnectTimeoutRef.current);
+            reconnectTimeoutRef.current = null;
+        }
+        reconnectAttemptsRef.current = 0;
         wsRef.current?.close();
         wsRef.current = null;
     }, []);
@@ -296,12 +326,15 @@ export function useAgentState(wsUrl?: string) {
     // Cleanup on unmount
     useEffect(() => {
         return () => {
+            if (reconnectTimeoutRef.current !== null) {
+                clearTimeout(reconnectTimeoutRef.current);
+            }
             wsRef.current?.close();
         };
     }, []);
 
     const getSpells = () => {
-        if (!wsRef.current) return;
+        if (\!wsRef.current) return;
         wsRef.current.send(JSON.stringify({
             type: "get_spells",
             character_id: "player_1"
@@ -309,14 +342,14 @@ export function useAgentState(wsUrl?: string) {
     };
 
     const listSaves = useCallback(() => {
-        if (!wsRef.current) return;
+        if (\!wsRef.current) return;
         wsRef.current.send(JSON.stringify({
             action: "list_saves"
         }));
     }, []);
 
     const requestMapData = useCallback(() => {
-        if (!wsRef.current) return;
+        if (\!wsRef.current) return;
         const playerId = gameState.combatants.find(c => c.isPlayer)?.id || "player_1";
         wsRef.current.send(JSON.stringify({
             action: "map_interaction",
@@ -328,7 +361,7 @@ export function useAgentState(wsUrl?: string) {
     const removeToast = useCallback((index: number) => {
         setGameState((prev) => ({
             ...prev,
-            toasts: prev.toasts.filter((_, i) => i !== index)
+            toasts: prev.toasts.filter((_, i) => i \!== index)
         }));
     }, []);
 
@@ -337,7 +370,7 @@ export function useAgentState(wsUrl?: string) {
             const response = await fetch(`http://localhost:8000/api/world/map/capture/${nodeId}`, {
                 method: "POST"
             });
-            if (!response.ok) throw new Error("Capture failed");
+            if (\!response.ok) throw new Error("Capture failed");
             const data = await response.json();
             return data.image_url;
         } catch (error) {
@@ -350,6 +383,52 @@ export function useAgentState(wsUrl?: string) {
         setGameState((prev) => ({ ...prev, screenShake: false }));
     }, []);
 
+    const equipItem = useCallback((itemId: string, slot: string) => {
+        const charId = gameState.combatants.find(c => c.isPlayer)?.id || "player_1";
+        wsRef.current?.send(JSON.stringify({
+            action: "equip_item",
+            character_id: charId,
+            item_id: itemId,
+            slot: slot
+        }));
+    }, [gameState.combatants]);
+
+    const unequipItem = useCallback((itemId: string) => {
+        const charId = gameState.combatants.find(c => c.isPlayer)?.id || "player_1";
+        wsRef.current?.send(JSON.stringify({
+            action: "unequip_item",
+            character_id: charId,
+            item_id: itemId
+        }));
+    }, [gameState.combatants]);
+
+    const setSelectedTarget = useCallback((targetId: string | null) => {
+        setGameState(prev => ({ ...prev, selectedTargetId: targetId }));
+    }, []);
+
+    const attackTarget = useCallback((targetId: string, weaponId?: string) => {
+        const charId = gameState.combatants.find(c => c.isPlayer)?.id || "player_1";
+        const payload: Record<string, unknown> = {
+            action: "attack",
+            attacker_id: charId,
+            target_id: targetId
+        };
+        if (weaponId) {
+            payload.weapon_id = weaponId;
+        }
+        wsRef.current?.send(JSON.stringify(payload));
+    }, [gameState.combatants]);
+
+    const castSpell = useCallback((targetId: string, spellId: string) => {
+        const charId = gameState.combatants.find(c => c.isPlayer)?.id || "player_1";
+        wsRef.current?.send(JSON.stringify({
+            action: "cast_spell",
+            attacker_id: charId,
+            target_id: targetId,
+            spell_id: spellId
+        }));
+    }, [gameState.combatants]);
+
     return {
         ...gameState,
         connect,
@@ -361,5 +440,10 @@ export function useAgentState(wsUrl?: string) {
         triggerMapCapture,
         removeToast,
         clearScreenShake,
+        equipItem,
+        unequipItem,
+        setSelectedTarget,
+        attackTarget,
+        castSpell,
     };
 }

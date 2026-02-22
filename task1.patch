@@ -1,0 +1,14 @@
+--- a/apps/web-client/src/hooks/useAgentState.ts
++++ b/apps/web-client/src/hooks/useAgentState.ts
+@@ -239,6 +239,11 @@ export function useAgentState(wsUrl?: string) {
+     const wsRef = useRef<WebSocket | null>(null);
+     const narrativeBufferRef = useRef<string>("");
+ 
++    const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
++    const reconnectAttemptsRef = useRef<number>(0);
++    const sessionIdRef = useRef<string>("default");
++    const roleRef = useRef<string>("player");
++
+     const onConnectionEstablished = useCallback((event: AgUiEvent) => {
+         setGameState(prev => ({
+@@ -242,6 +247,7 @@ export function useAgentState(wsUrl?: string) {

@@ -6,7 +6,7 @@ import { useAgentState, Combatant } from "../hooks/useAgentState";
 import { Skull, Heart, Shield, Sword } from "lucide-react";
 
 export default function InitiativeSidebar() {
-    const { combatants, connected } = useAgentState();
+    const { combatants, connected, selectedTargetId, setSelectedTarget } = useAgentState();
 
     if (!connected || combatants.length === 0) return null;
 
@@ -30,7 +30,12 @@ export default function InitiativeSidebar() {
             <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2">
                 <AnimatePresence mode="popLayout">
                     {sortedCombatants.map((c) => (
-                        <CombatantCard key={c.id} combatant={c} />
+                        <CombatantCard
+                            key={c.id}
+                            combatant={c}
+                            isSelected={selectedTargetId === c.id}
+                            onSelect={() => setSelectedTarget(c.id === selectedTargetId ? null : c.id)}
+                        />
                     ))}
                 </AnimatePresence>
             </div>
@@ -38,7 +43,7 @@ export default function InitiativeSidebar() {
     );
 }
 
-function CombatantCard({ combatant }: { combatant: Combatant }) {
+function CombatantCard({ combatant, isSelected, onSelect }: { combatant: Combatant; isSelected: boolean; onSelect: () => void }) {
     const hpMax = combatant.hp_max || 20;
     const hpCurrent = combatant.hp_current ?? hpMax;
     const hpPercent = Math.max(0, Math.min(100, (hpCurrent / hpMax) * 100));
@@ -46,23 +51,36 @@ function CombatantCard({ combatant }: { combatant: Combatant }) {
     return (
         <motion.div
             layout
+            onClick={onSelect}
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{
                 opacity: 1,
                 scale: 1,
-                borderColor: combatant.current ? "#c5a059" : "#2a2a2d",
-                backgroundColor: combatant.current ? "rgba(197, 160, 89, 0.05)" : "rgba(20, 20, 22, 0.5)"
+                borderColor: isSelected ? "#ef4444" : combatant.current ? "#c5a059" : "#2a2a2d",
+                backgroundColor: isSelected ? "rgba(239, 68, 68, 0.1)" : combatant.current ? "rgba(197, 160, 89, 0.05)" : "rgba(20, 20, 22, 0.5)"
             }}
-            className={`p-3 rounded border transition-colors relative overflow-hidden ${combatant.current ? 'ring-1 ring-[#c5a059]/30 shadow-[0_0_15px_rgba(197,160,89,0.1)]' : ''
-                }`}
+            className={`p-3 rounded border transition-all relative overflow-hidden cursor-pointer hover:border-stone-500
+                ${isSelected ? 'ring-1 ring-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : ''}
+                ${combatant.current && !isSelected ? 'ring-1 ring-[#c5a059]/30 shadow-[0_0_15px_rgba(197,160,89,0.1)]' : ''}
+                `}
         >
             {/* Active Turn Glow */}
-            {combatant.current && (
+            {combatant.current && !isSelected && (
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: [0.1, 0.3, 0.1] }}
                     transition={{ duration: 2, repeat: Infinity }}
                     className="absolute inset-0 bg-[#c5a059]/10 pointer-events-none"
+                />
+            )}
+
+            {/* Selected Target Crosshair/Glow */}
+            {isSelected && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: [0.1, 0.2, 0.1] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                    className="absolute inset-0 bg-red-500/10 pointer-events-none"
                 />
             )}
 

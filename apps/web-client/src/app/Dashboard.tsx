@@ -37,7 +37,8 @@ export default function Dashboard({ initialSession }: DashboardProps) {
         sendAction,
         getSpells,
         clearScreenShake,
-        combatants
+        combatants,
+        activeWidgets
     } = useAgentState();
 
     const [activeTab, setActiveTab] = useState('story'); // story, inventory, map, spellbook, party, bestiary
@@ -45,11 +46,13 @@ export default function Dashboard({ initialSession }: DashboardProps) {
     const [showLoot, setShowLoot] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
 
-    // Calculate player health for vignette
+    // Calculate player health for vignette — continuous scale, not binary
     const player = combatants.find(c => c.isPlayer);
-    const isCriticalHealth = player && player.hp_max && player.hp_current
-        ? (player.hp_current / player.hp_max) < 0.25
-        : false;
+    const hpPct = (player?.hp_max && player?.hp_current != null)
+        ? player.hp_current / player.hp_max
+        : 1;
+    const vignetteIntensity = Math.max(0, 1 - hpPct);          // 0 = full HP, 1 = dead
+    const isCriticalHealth = hpPct <= 0.25 && vignetteIntensity > 0;
 
     // Handle screen shake reset
     useEffect(() => {
@@ -127,7 +130,12 @@ export default function Dashboard({ initialSession }: DashboardProps) {
         <div className={`flex h-screen w-full bg-[#0f0f12] text-[#e0e0e4] font-serif overflow-hidden relative selection:bg-[#c5a059]/30 selection:text-white ${screenShake ? 'animate-shake' : ''}`}>
 
             {/* 0. Diegetic Overlays */}
-            {isCriticalHealth && <div className="blood-vignette" />}
+            {vignetteIntensity > 0 && (
+                <div
+                    className={`blood-vignette${isCriticalHealth ? ' animate-pulse' : ''}`}
+                    style={{ opacity: vignetteIntensity }}
+                />
+            )}
 
             {/* Sidebar Navigation */}
             <aside className="hidden md:flex flex-col items-center gap-4 py-6 w-20 border-r border-[#2a2a2d] bg-[#141416] z-20">
@@ -211,13 +219,20 @@ export default function Dashboard({ initialSession }: DashboardProps) {
                 />
             )}
 
-            {showLoot && (
+            {activeWidgets.find(w => w.widget_type === 'LOOT_MODAL') && (
                 <LootModal
-                    items={mockLoot}
-                    onClose={() => setShowLoot(false)}
+                    items={(activeWidgets.find(w => w.widget_type === 'LOOT_MODAL')?.data.items as any[]) || []}
+                    onClose={() => sendAction({ type: 'close_widget', widget_type: 'LOOT_MODAL' })}
                     onTakeAll={() => {
-                        console.log('Took all loot');
-                        setShowLoot(false);
+                        const widget = activeWidgets.find(w => w.widget_type === 'LOOT_MODAL');
+                        const itemIds = (widget?.data.items as any[] || []).map(i => i.id);
+                        const charId = combatants.find(c => c.isPlayer)?.id || "player_1";
+                        sendAction({
+                            action: 'distribute_loot',
+                            item_ids: itemIds,
+                            target_character_id: charId
+                        });
+                        sendAction({ type: 'close_widget', widget_type: 'LOOT_MODAL' });
                     }}
                 />
             )}

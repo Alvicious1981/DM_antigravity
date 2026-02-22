@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dragons and Dungeons - Load Game</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&amp;family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f2330d",
+                        "primary-dark": "#8a1c07",
+                        "background-light": "#f8f6f5",
+                        "background-dark": "#221310",
+                        "stone-dark": "#1c1917",
+                        "stone-light": "#292524",
+                        "magma": "#ff5500",
+                        "rust": "#78350f",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"],
+                        "fantasy": ["Cinzel", "serif"],
+                    },
+                    backgroundImage: {
+                        'stone-texture': "url('https://www.transparenttextures.com/patterns/black-scales.png')",
+                        'cracked-stone': "linear-gradient(to bottom, rgba(20, 10, 10, 0.9), rgba(10, 5, 5, 0.95))",
+                    },
+                    boxShadow: {
+                        'glow': '0 0 15px rgba(242, 51, 13, 0.5)',
+                        'inner-magma': 'inset 0 0 20px rgba(242, 51, 13, 0.2)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom styles for high immersion that go beyond Tailwind utilities */
+        .stone-border {
+            border: 2px solid #44403c;
+            box-shadow: 
+                inset 1px 1px 0px rgba(255, 255, 255, 0.1),
+                inset -1px -1px 0px rgba(0, 0, 0, 0.8),
+                0 4px 6px rgba(0, 0, 0, 0.5);
+        }
+
+        .magma-text {
+            color: #fb923c;
+            text-shadow: 0 0 10px #ea580c, 0 0 20px #9a3412;
+        }
+        
+        .ember-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .ember {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #f2330d;
+            border-radius: 50%;
+            opacity: 0;
+            box-shadow: 0 0 10px #f2330d;
+            animation: rise 10s infinite ease-in;
+        }
+
+        .ember:nth-child(1) { left: 10%; animation-duration: 8s; animation-delay: 0s; }
+        .ember:nth-child(2) { left: 30%; animation-duration: 12s; animation-delay: 2s; }
+        .ember:nth-child(3) { left: 70%; animation-duration: 7s; animation-delay: 4s; }
+        .ember:nth-child(4) { left: 50%; animation-duration: 11s; animation-delay: 1s; }
+        .ember:nth-child(5) { left: 90%; animation-duration: 9s; animation-delay: 3s; }
+
+        @keyframes rise {
+            0% { transform: translateY(100vh) scale(1); opacity: 0; }
+            20% { opacity: 0.8; }
+            80% { opacity: 0.4; }
+            100% { transform: translateY(-10vh) scale(0); opacity: 0; }
+        }
+
+        /* Scrollbar Styling */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 12px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1c1917; 
+            border-left: 1px solid #44403c;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #57534e; 
+            border: 1px solid #292524;
+            border-radius: 2px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #78716c; 
+        }
+
+        /* Input specific styling */
+        .search-input-placeholder::placeholder {
+            color: #7f1d1d;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display overflow-hidden select-none">
+<!-- Background Image Layer -->
+<div class="fixed inset-0 z-0 bg-cover bg-center opacity-40 pointer-events-none mix-blend-overlay" data-alt="Stone wall texture background" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDrBz7VigHk5_t9CpXW7QK8za8j_eIgFytZnZS0ey0F0rDili0rpk9qGzwt_yxzymvXcPMsyuzrMpKg541n3i5CiXF28JzIx4MDOqgzmiaD69Tk52QXOmySP_B7XB08Z6noeycT0udByvfLrYt00YeD40OLy6Lu5wY1HWKoTS5KVPd0fHXK2996bX-wlz3FoOGxbtiQoVcth0x19xzy_XvAeVk-0wwdSgQ5Qld2W5n87A7SAdS1MFq7SSErDGL88NnfnjWesQhi8w');"></div>
+<div class="fixed inset-0 z-0 bg-gradient-to-t from-black via-transparent to-black pointer-events-none"></div>
+<!-- Embers Effect -->
+<div class="ember-container">
+<div class="ember"></div>
+<div class="ember"></div>
+<div class="ember"></div>
+<div class="ember"></div>
+<div class="ember"></div>
+</div>
+<!-- Main Container -->
+<div class="relative flex h-screen w-full flex-col z-10">
+<!-- Header Section -->
+<header class="flex-none px-12 pt-10 pb-6 flex justify-between items-end border-b border-white/5 bg-gradient-to-b from-stone-900/90 to-transparent">
+<div>
+<h1 class="text-6xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-orange-400 via-primary to-stone-900 font-fantasy drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] uppercase border-b-2 border-primary/20 pb-2 mb-2">
+                    Load Game
+                </h1>
+<p class="text-orange-200/60 font-fantasy tracking-widest text-sm uppercase pl-1">Select a chronicle to resume your journey</p>
+</div>
+<!-- Search / Filter -->
+<div class="w-96 relative group">
+<div class="absolute -inset-0.5 bg-gradient-to-r from-primary to-orange-600 rounded-lg blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+<div class="relative flex items-center bg-stone-900 border-2 border-stone-700 rounded-lg overflow-hidden shadow-inner">
+<input class="w-full bg-transparent border-none text-orange-100 placeholder-stone-500 px-4 py-3 focus:ring-0 font-fantasy tracking-wider focus:outline-none" placeholder="Search Chronicles..." type="text"/>
+<span class="material-symbols-outlined text-stone-500 pr-3">search</span>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-grow flex overflow-hidden px-12 py-8 gap-12">
+<!-- Left: Save List -->
+<div class="w-2/3 h-full flex flex-col">
+<div class="flex-grow overflow-y-auto custom-scrollbar pr-4 space-y-4 pb-20">
+<!-- Save Slot 1 (Selected) -->
+<div class="group relative cursor-pointer transform transition-all duration-300 hover:scale-[1.01]">
+<!-- Selection Glow -->
+<div class="absolute -inset-[2px] bg-gradient-to-r from-primary via-orange-500 to-primary rounded-xl blur opacity-60"></div>
+<!-- Card Content -->
+<div class="relative flex items-stretch bg-stone-900 rounded-lg border-2 border-stone-600 shadow-2xl overflow-hidden">
+<!-- Image -->
+<div class="w-64 relative border-r-2 border-stone-700">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110" data-alt="Dark fantasy dungeon corridor with torches" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCEg0wgDOBNJR3PV932E2pzLvW18QgAIlbn0VWXex-pyj1Y4BJKkKeO0e3G_ArrYn9DgtKEx5r8uSq6EBvFaFhMqPC8F7GP_7Rk0QCVL0ete3sMX7fZGAzIiCpCHMwMgGrte5rkqmBS2uOQG-btQtyHf06F0opyp-pMXdyPm570bhJ0O2D_iwchiQtt9Erfd_usx0HP-AjoPU0h0S_E7K_xEvijhENNR-LdiZyUhbmxZKEis7ZMID14oVMlnXLKM0Btzaf5pgPAZg');"></div>
+<div class="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-stone-900/90"></div>
+<div class="absolute bottom-2 left-2 bg-stone-950/80 px-2 py-1 rounded border border-stone-600 text-xs text-orange-200 font-mono">AUTOSAVE</div>
+</div>
+<!-- Details -->
+<div class="flex-1 p-6 flex flex-col justify-between bg-[url('https://www.transparenttextures.com/patterns/black-scales.png')]">
+<div>
+<div class="flex justify-between items-start mb-1">
+<h3 class="text-2xl font-fantasy font-bold text-orange-50 magma-text tracking-wide">Garrick the Bold</h3>
+<span class="text-primary font-bold font-mono text-lg">Lvl 14</span>
+</div>
+<p class="text-stone-400 font-display text-sm mb-4 border-b border-stone-700 pb-2">Paladin • Oath of Vengeance</p>
+<div class="grid grid-cols-2 gap-4 text-sm text-stone-300">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]">location_on</span>
+<span class="font-fantasy">The Molten Core</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-stone-500 text-[18px]">schedule</span>
+<span>Playtime: 42h 15m</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-stone-500 text-[18px]">calendar_today</span>
+<span>Oct 24, 2023 - 12:42 PM</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-red-700 text-[18px]">swords</span>
+<span class="text-red-400">Combat State</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Save Slot 2 -->
+<div class="group relative cursor-pointer transform transition-all duration-300 hover:scale-[1.01]">
+<!-- Hover Glow (Hidden by default) -->
+<div class="absolute -inset-[1px] bg-primary/40 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+<div class="relative flex items-stretch bg-stone-900/80 rounded-lg border border-stone-700 shadow-xl overflow-hidden group-hover:border-primary/50 transition-colors">
+<!-- Image -->
+<div class="w-64 relative border-r border-stone-800">
+<div class="absolute inset-0 bg-cover bg-center grayscale group-hover:grayscale-0 transition-all duration-500" data-alt="Gloomy forest clearing at dusk" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAfnKm-xPdOkExCPjo47EOu5OqN-zZp_OjYcs1_2e9qw92t2zcymrwBTahl9xhFJQRK96gAruCA9QPJ0NeXFXOu_nvFwwS7dlHJ8DDkdgq1HZsQuKzmMF9IYCIARlAup3Su3bhsQuhiljo-md_p5O0G-YjW-0VL4Rcw8P8SCK-rzLhurYX34wpTy112IyOUCEuKBAcvj5CbH5blpEav4BCXQwBRayYOACtanOjX5eNbmATJH3bC00NunaXbQUM31uwq-Mxs_2F3yg');"></div>
+<div class="absolute inset-0 bg-stone-900/40 group-hover:bg-transparent transition-colors"></div>
+</div>
+<!-- Details -->
+<div class="flex-1 p-6 flex flex-col justify-between bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')]">
+<div>
+<div class="flex justify-between items-start mb-1">
+<h3 class="text-xl font-fantasy font-bold text-stone-300 group-hover:text-orange-100 transition-colors">Elara Shadowstep</h3>
+<span class="text-stone-500 group-hover:text-primary font-bold font-mono">Lvl 8</span>
+</div>
+<p class="text-stone-500 text-sm mb-4 border-b border-stone-800 pb-2">Rogue • Assassin</p>
+<div class="grid grid-cols-2 gap-4 text-sm text-stone-500 group-hover:text-stone-400 transition-colors">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">location_on</span>
+<span class="font-fantasy">Merchant's Guild</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">schedule</span>
+<span>Playtime: 18h 30m</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+<span>Yesterday - 9:15 PM</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">bed</span>
+<span>Safe Zone</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Save Slot 3 -->
+<div class="group relative cursor-pointer transform transition-all duration-300 hover:scale-[1.01]">
+<div class="absolute -inset-[1px] bg-primary/40 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+<div class="relative flex items-stretch bg-stone-900/80 rounded-lg border border-stone-700 shadow-xl overflow-hidden group-hover:border-primary/50 transition-colors">
+<div class="w-64 relative border-r border-stone-800">
+<div class="absolute inset-0 bg-cover bg-center grayscale group-hover:grayscale-0 transition-all duration-500" data-alt="Ancient stone ruins in fog" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBhMWZrIq4T0dqpU6g51r0D2yEv8yeOV3i50uMN6yDFaTAKToUKvmWBFcqzAfCd9aphEB-WtMKi7V0u8Q7hqt0gj77CGpxCzIySJrS1gWMMymZ3JeZGoYpwReAdEo0mjAn63srFVzGDqbumlNkCsc8rEyyT0tZJjE9KtGR_od341ToqKbbDzvDUhGiB0GvKd-kSNzDdeI0GJdAokJLIHmojcm7hz9Uutt_XZlOoaJc-sjrfY2eEpxVCPJykuqRC2_FKgc6eswjbeQ');"></div>
+<div class="absolute inset-0 bg-stone-900/40 group-hover:bg-transparent transition-colors"></div>
+</div>
+<div class="flex-1 p-6 flex flex-col justify-between bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')]">
+<div>
+<div class="flex justify-between items-start mb-1">
+<h3 class="text-xl font-fantasy font-bold text-stone-300 group-hover:text-orange-100 transition-colors">Kaelen Fireheart</h3>
+<span class="text-stone-500 group-hover:text-primary font-bold font-mono">Lvl 5</span>
+</div>
+<p class="text-stone-500 text-sm mb-4 border-b border-stone-800 pb-2">Wizard • Pyromancer</p>
+<div class="grid grid-cols-2 gap-4 text-sm text-stone-500 group-hover:text-stone-400 transition-colors">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">location_on</span>
+<span class="font-fantasy">Tutorial Dungeon</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">schedule</span>
+<span>Playtime: 3h 12m</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+<span>Oct 22, 2023 - 4:20 PM</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">explore</span>
+<span>Exploration</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Save Slot 4 -->
+<div class="group relative cursor-pointer transform transition-all duration-300 hover:scale-[1.01] opacity-70">
+<div class="absolute -inset-[1px] bg-primary/40 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+<div class="relative flex items-stretch bg-stone-900/80 rounded-lg border border-stone-700 shadow-xl overflow-hidden group-hover:border-primary/50 transition-colors">
+<div class="w-64 relative border-r border-stone-800">
+<div class="absolute inset-0 bg-cover bg-center grayscale group-hover:grayscale-0 transition-all duration-500" data-alt="Dark snowy mountain peak" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCQ5TCrvcNjRnmTN-qj-PqCymmVzgsaxTl9lHFDBpMtz002g8KkvMY7wlYBPDwAISaHpg5lNlKxxEy8HHnrn4KkhJR-t5BAkUpoF90YCfqzjZ1i1oJ8fpP0O8yIOQNh4pFRl_QVzWw6ijfQDiFDt0CzYd4E2RkTij1FYZPRUHUrLqVt4ODhTTIcZAgTx9obpqdHKhLhfIGDlkkDg7NcIyUk1R60H9dD0DUE0Ybus-m2ZeXcryzNAilN9f-pCvs6qCw3wTDTTRfjOA');"></div>
+<div class="absolute inset-0 bg-stone-900/40 group-hover:bg-transparent transition-colors"></div>
+</div>
+<div class="flex-1 p-6 flex flex-col justify-between bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')]">
+<div>
+<div class="flex justify-between items-start mb-1">
+<h3 class="text-xl font-fantasy font-bold text-stone-300 group-hover:text-orange-100 transition-colors">Bjorn Iron-Side</h3>
+<span class="text-stone-500 group-hover:text-primary font-bold font-mono">Lvl 22</span>
+</div>
+<p class="text-stone-500 text-sm mb-4 border-b border-stone-800 pb-2">Barbarian • Berserker</p>
+<div class="grid grid-cols-2 gap-4 text-sm text-stone-500 group-hover:text-stone-400 transition-colors">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">location_on</span>
+<span class="font-fantasy">Frostfall Peak</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">schedule</span>
+<span>Playtime: 65h 40m</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+<span>Sept 14, 2023 - 11:00 PM</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right: Details / Preview Panel -->
+<div class="w-1/3 flex flex-col h-full relative">
+<!-- Preview Image Frame -->
+<div class="h-64 relative rounded-t-lg border-2 border-stone-600 border-b-0 overflow-hidden shadow-2xl">
+<div class="absolute inset-0 bg-cover bg-center" data-alt="Closeup of a red dragon eye or scales" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB54sm2TntUnE7zbyVC7nv73CneieC53vpTfwJtEJLsZ4SCUU_lCJRuEwIwrW7PBn2gOOiUbeQqUPzXXz7tVNrn4aX92ucI2fU5WlrE6tOjqsQ46dHIuEm3u9rrENi75lxZGGMH1nRjF77NaKmTBYBWVD2L1mrH2m4oFwyRFqpY1mTJPmhcW3ykg_T-z-J2yDyHMSTX8ifdOk4qV71BsIWMFzV_jFVH3NTL61r26zP5J-cVZwEgtY4GvKhI72AFXtviTY1zY_BdzQ');"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-stone-900 to-transparent"></div>
+<div class="absolute bottom-4 left-4">
+<h2 class="text-3xl font-fantasy font-black text-white drop-shadow-md">The Molten Core</h2>
+<p class="text-orange-300/80 font-display text-sm tracking-wider">Danger Level: Extreme</p>
+</div>
+</div>
+<!-- Stats Panel -->
+<div class="flex-grow bg-stone-900/90 border-2 border-stone-600 border-t-0 rounded-b-lg p-6 flex flex-col gap-6 backdrop-blur-sm shadow-2xl relative overflow-hidden">
+<!-- Background texture for panel -->
+<div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB183U6h3WS8K2BXsr6niVuY2BI73utfr51fx0aQq75mDDXgD1LByk9e7ACziouwA3VprxkQiO4t4NqZoe1FfrV70PVtOo09NP0QJNgCAQQYCTqcYV6yGIeiLyAAuGywlNhMN96Y0gxq2eao9yiddMbutcfrCC0fLewcdrKB80PmF2hrxQLfKKB_Y1bKhzcu3P5S5R37W5LhY_wPxPvgipdJbbIZ9dgrQUbBummGNjL5s2AwVwna7ELy_I50E5GkKoHeCnacKygtQ')"></div>
+<!-- Party Roster -->
+<div>
+<h4 class="text-orange-400/70 font-fantasy uppercase tracking-widest text-xs mb-3 border-b border-stone-700 pb-1">Current Party</h4>
+<div class="flex gap-3">
+<div class="w-12 h-12 rounded bg-stone-800 border border-stone-600 bg-cover bg-center shadow-lg" data-alt="Portrait of party member 1" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB9XPLbN-dNuFY4NHC89skYEst5HNnXYWhgd7BedgV_deGvPFXoZEf8TqRAdBJeLdkSPIKuBKsW2Dk9Mvxcdz0nZuK2nYCpHhDiyd6qjW7meS7QpJU_5VfnNcHTqP_HeAbee-chf0ttXw2UBpP82nwIxt839lNXrMpcI5-1NsRRwVBIQ17D9AJjYDfx4tmos50jBIiEhQFc0qQmHCewuUZ_jgvN1nsx2yX6F211JF4UboqUviRGDiWMuCHiXOtraBGIkfyOAk5f2Q');"></div>
+<div class="w-12 h-12 rounded bg-stone-800 border border-stone-600 bg-cover bg-center shadow-lg grayscale opacity-50" data-alt="Portrait of party member 2" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuACn1ZaAZPg_2o72mMFtS3QjD7Pavqa9FiJVNb7orfhSE2njnCBDBWuwacdE3nWVO7SijQOQ0ts2iDhGFS_MfrtegrwdJPAiOjnXqmyw2pfiBHx4RjEiLmOaENIt14MxvmcUSLB1NRIkZQCRDyh9pQYDOIsmMWTAibSL8wfPQ-WznExm6Prb7_-_CVdahlfO-UqEYXXJlBuw_CUIR9S2e34vlWMvruXxAlZ0AWgrc5BU-wECzA-r62RnwnQPyRSXSb6jd537eXyKw');"></div>
+<div class="w-12 h-12 rounded bg-stone-800 border border-stone-600 bg-cover bg-center shadow-lg" data-alt="Portrait of party member 3" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBWc9HOBLgUsDOLeo8loH2paWFv98ft9J9zRbtXXGXOMCvGF79rPZhC5pHvoB-ckiEnynCnN_qFP-8RfYffvy-jIpRnJGr2WKYJam7Uh8XyxPUw1_uz63aOnDnHqJBtVaVNWMf05p1dNHP5LWG_tUCKWIHgXB6SUBYxTl4mTzwVsWr4kqZX7dDFFRFiOfgRCm9PTzYJYIxp4qa0_Xl0C3xCZqK5_SiqsZOx9looD3MtkmGcGGsQt52gOyxEMz92ARkUtvTKZNpg7g');"></div>
+<div class="flex items-center justify-center w-12 h-12 rounded bg-stone-800/50 border border-stone-700 border-dashed text-stone-600">
+<span class="material-symbols-outlined text-sm">add</span>
+</div>
+</div>
+</div>
+<!-- Quest Info -->
+<div>
+<h4 class="text-orange-400/70 font-fantasy uppercase tracking-widest text-xs mb-2 border-b border-stone-700 pb-1">Active Quest</h4>
+<p class="text-white font-serif text-lg leading-tight mb-1">The Heart of the Volcano</p>
+<p class="text-stone-400 text-sm italic">"Retrieve the Ember Gem from the depths of the core before the volcano erupts."</p>
+</div>
+<!-- Difficulty -->
+<div class="mt-auto pt-4 border-t border-stone-700/50">
+<div class="flex justify-between items-end">
+<div class="text-xs text-stone-500 font-mono">
+                                GAME VERSION 1.4.2<br/>
+                                DIFFICULTY: HARDCORE
+                            </div>
+<div class="flex gap-1">
+<span class="material-symbols-outlined text-primary text-sm">skull</span>
+<span class="material-symbols-outlined text-primary text-sm">skull</span>
+<span class="material-symbols-outlined text-primary text-sm">skull</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer / Action Bar -->
+<footer class="flex-none px-12 pb-10 pt-4 flex justify-between items-end relative z-20">
+<!-- Back Button: Rusted Copper Plate -->
+<button class="group relative px-8 py-3 bg-stone-800 rounded overflow-hidden shadow-lg transform transition active:scale-95">
+<div class="absolute inset-0 bg-gradient-to-br from-stone-700 to-stone-900"></div>
+<!-- Copper/Rust Texture Overlay -->
+<div class="absolute inset-0 opacity-40 mix-blend-overlay bg-[url('https://www.transparenttextures.com/patterns/rust.png')]"></div>
+<div class="absolute inset-0 border border-stone-500 opacity-50 rounded"></div>
+<div class="relative flex items-center gap-3">
+<span class="material-symbols-outlined text-orange-200/50 group-hover:-translate-x-1 transition-transform">arrow_back</span>
+<span class="font-fantasy font-bold text-orange-100/80 tracking-widest group-hover:text-white transition-colors">RETURN</span>
+</div>
+</button>
+<!-- Load Button: Massive Iron & Magma Block -->
+<button class="group relative px-16 py-5 bg-stone-900 rounded-lg overflow-hidden shadow-[0_10px_20px_rgba(0,0,0,0.5)] transform transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(242,51,13,0.4)]">
+<!-- Base Stone Texture -->
+<div class="absolute inset-0 bg-stone-800 bg-[url('https://www.transparenttextures.com/patterns/black-scales.png')] opacity-100"></div>
+<!-- Magma Glow Gradient (Hidden initially) -->
+<div class="absolute inset-0 bg-gradient-to-t from-primary via-red-600 to-orange-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500 mix-blend-overlay"></div>
+<!-- Inner Fire Animation (Simulated via gradient shift) -->
+<div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50 blur-sm group-hover:h-full group-hover:opacity-20 transition-all duration-700"></div>
+<!-- Cracks Overlay -->
+<div class="absolute inset-0 opacity-30 bg-[url('https://www.transparenttextures.com/patterns/cracked-ground.png')] mix-blend-color-dodge"></div>
+<!-- Border -->
+<div class="absolute inset-0 border-4 border-stone-600 rounded-lg group-hover:border-orange-500/50 transition-colors duration-300"></div>
+<!-- Text -->
+<div class="relative flex flex-col items-center z-10">
+<span class="text-2xl font-fantasy font-black text-stone-300 tracking-[0.2em] group-hover:text-white group-hover:drop-shadow-[0_0_10px_rgba(255,100,0,0.8)] transition-all">LOAD GAME</span>
+<div class="h-[1px] w-12 bg-stone-500 mt-1 group-hover:w-full group-hover:bg-orange-400 transition-all duration-500"></div>
+</div>
+</button>
+</footer>
+</div>
+</body></html>

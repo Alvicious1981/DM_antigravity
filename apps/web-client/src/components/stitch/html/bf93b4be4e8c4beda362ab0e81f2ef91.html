@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Pantalla de Muerte: El Destino Sellado</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&amp;family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#d41132",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#0f0505",
+                        "stone-dark": "#1a1616",
+                        "stone-light": "#2d2626",
+                        "parchment": "#dcd0b3",
+                    },
+                    fontFamily: {
+                        "display": ["Newsreader", "serif"],
+                        "gothic": ["Cinzel Decorative", "serif"],
+                    },
+                    backgroundImage: {
+                        'stone-texture': "url('https://www.transparenttextures.com/patterns/dark-matter.png')",
+                        'paper-texture': "url('https://www.transparenttextures.com/patterns/notebook-dark.png')",
+                    },
+                    boxShadow: {
+                        'glow': '0 0 15px rgba(212, 17, 50, 0.4)',
+                        'inner-stone': 'inset 0 0 20px rgba(0,0,0,0.9)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>/* Custom Animations & Skeuomorphic Effects */
+@keyframes pulse-glow {
+    0%, 100% {
+        text-shadow: 0 0 10px #d41132, 0 0 20px #70091b;
+        opacity: 0.9;
+        } 50% {
+        text-shadow: 0 0 20px #d41132, 0 0 30px #d41132, 0 0 40px #70091b;
+        opacity: 1;
+        }
+    }
+@keyframes ember-rise {
+    0% {
+        transform: translateY(100vh) scale(0);
+        opacity: 0;
+        } 50% {
+        opacity: 1;
+        } 100% {
+        transform: translateY(-10vh) scale(1);
+        opacity: 0;
+        }
+    }
+@keyframes fog-drift {
+    0% {
+        background-position: 0 0;
+        } 100% {
+        background-position: 1000px 0;
+        }
+    }
+.glowing-text {
+    animation: pulse-glow 3s infinite ease-in-out
+    }
+.ember {
+    position: absolute;
+    background: #d41132;
+    border-radius: 50%;
+    opacity: 0;
+    animation: ember-rise linear infinite
+    }
+/* Tombstone shape */
+.tombstone-shape {
+    clip-path: polygon(15% 0, 85% 0, 100% 15%, 100% 100%, 0 100%, 0 15%)
+    }
+/* Torn paper effect generator */
+.torn-paper {
+    mask-image: url("data:image/svg+xml,%3Csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='rough'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.02' numOctaves='5' result='noise' /%3E%3CfeDisplacementMap in='SourceGraphic' in2='noise' scale='5' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' fill='white' filter='url(%23rough)' /%3E%3C/svg%3E");
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='rough'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.02' numOctaves='5' result='noise' /%3E%3CfeDisplacementMap in='SourceGraphic' in2='noise' scale='5' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' fill='white' filter='url(%23rough)' /%3E%3C/svg%3E")
+    }
+/* Stone Button Cracks */
+.stone-btn {
+    background-image: linear-gradient(to bottom, #2d2626, #1a1616), url(https://lh3.googleusercontent.com/aida-public/AB6AXuAf9vK8vAKzfCMBqzl4sSuD1w2lCfRVKqDfd2TTdkIjHUN8Uvb6vwK-FnPREZGk-0AUuokWmbsWkrctGWz8WBPBou-Dj6R4PsjOF5XI4uYkRYE7qt7w1a95mNOYszMwhya0R_-2lhzBzmBRoFYngueGiKQ1ZI21dpHOtxA_Ysy5JgREul64mptKMIIVYwpeFEiFBgxS_msPyD82L91kTY58ch-Wdk_SARYpZp1j-zVFL_4-w3CvrNo3KijAt5aP3mlyRudo_JpA0Q);
+    background-blend-mode: multiply;
+    border: 2px solid #3d3333;
+    box-shadow: 0 4px 0 #0f0505, 0 5px 10px rgba(0, 0, 0, 0.5);
+    transition: all 0.2s ease
+    }
+.stone-btn:hover {
+    border-color: #d41132;
+    box-shadow: 0 0 15px #d41132, inset 0 0 20px #70091b;
+    transform: translatey(2px)
+    }
+.stone-btn:active {
+    transform: translatey(4px);
+    box-shadow: 0 0 5px #d41132, inset 0 0 30px #d41132
+    }</style>
+</head>
+<body class="bg-background-dark text-slate-100 font-display min-h-screen overflow-hidden selection:bg-primary selection:text-white">
+<!-- Background Layer -->
+<div class="fixed inset-0 z-0">
+<!-- Main Atmospheric Image -->
+<div class="absolute inset-0 bg-cover bg-center opacity-40 grayscale contrast-125" data-alt="Foggy dark graveyard with ancient tombstones" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDa_iKiT7ufTJanCApomoxDRu7qJh-ulRcX8Ge0JB_XzYZ2tTfjgvMWhe-o-8qS_vG1y5zH7ayfR89L_hIAAADZX0AehjYRknAd_UlNkYm1aELMMmnm4kYDc0-3CRiJPtYy_qQgfZvE6OMlD_TyXgIuW0N1g2ngs6URZxweyPDWlnlMueF45M1GK18z25pFubKXmXXJV9ZLzn0A4tgS0Dko_E7ZXv3UA624e303y2btRgiQ_EldPyJYm5CHCK7ACaHMNBQPL3d9Cg');">
+</div>
+<!-- Fog Overlay -->
+<div class="absolute inset-0 bg-[url('https://raw.githubusercontent.com/danielstuart14/CSS_FOG_ANIMATION/master/fog1.png')] opacity-30 animate-[fog-drift_60s_linear_infinite] bg-repeat-x w-[200%] h-full pointer-events-none"></div>
+<!-- Vignette -->
+<div class="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#0f0505_90%)] z-10"></div>
+</div>
+<!-- Ember Particle System (Pure CSS) -->
+<div class="absolute inset-0 z-10 pointer-events-none overflow-hidden">
+<div class="ember w-1 h-1 left-[10%] animation-delay-0" style="animation-duration: 7s; animation-delay: 0s;"></div>
+<div class="ember w-1.5 h-1.5 left-[20%] animation-delay-2000" style="animation-duration: 10s; animation-delay: 2s;"></div>
+<div class="ember w-1 h-1 left-[35%] animation-delay-1000" style="animation-duration: 5s; animation-delay: 1s;"></div>
+<div class="ember w-2 h-2 left-[50%] animation-delay-4000" style="animation-duration: 12s; animation-delay: 4s;"></div>
+<div class="ember w-1 h-1 left-[65%] animation-delay-3000" style="animation-duration: 8s; animation-delay: 3s;"></div>
+<div class="ember w-1.5 h-1.5 left-[80%] animation-delay-1500" style="animation-duration: 6s; animation-delay: 1.5s;"></div>
+<div class="ember w-1 h-1 left-[90%] animation-delay-5000" style="animation-duration: 9s; animation-delay: 5s;"></div>
+</div>
+<!-- Main Content Container -->
+<div class="relative z-20 flex flex-col items-center justify-center min-h-screen p-4 md:p-8">
+<!-- Tombstone Monument -->
+<div class="relative w-full max-w-2xl flex flex-col items-center">
+<!-- Basalt Stone Header -->
+<div class="tombstone-shape w-full bg-[#1a1616] bg-stone-texture p-1 pt-12 pb-8 shadow-[0_20px_50px_rgba(0,0,0,0.8),inset_0_0_60px_rgba(0,0,0,1)] border-t border-white/5 relative overflow-hidden group">
+<!-- Cracks overlay -->
+<div class="absolute inset-0 opacity-20 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/cracked-concrete.png')]"></div>
+<!-- Title -->
+<div class="relative z-10 px-6 text-center">
+<span class="material-symbols-outlined text-primary/60 text-5xl mb-4 drop-shadow-[0_0_10px_rgba(212,17,50,0.6)]">skull</span>
+<h1 class="font-gothic text-4xl md:text-6xl font-bold leading-tight tracking-widest text-primary glowing-text uppercase mb-2">
+                        Tu Destino <br/> Ha Sido Sellado
+                    </h1>
+<div class="h-px w-32 mx-auto bg-gradient-to-r from-transparent via-primary to-transparent opacity-50 my-4"></div>
+</div>
+</div>
+<!-- Charred Parchment (Stats) -->
+<div class="torn-paper relative w-[95%] -mt-4 bg-[#cbbfa3] bg-paper-texture text-[#2c1810] p-8 md:p-10 shadow-[0_10px_30px_rgba(0,0,0,0.5)] transform rotate-[0.5deg]">
+<!-- Burn marks -->
+<div class="absolute inset-0 shadow-[inset_0_0_80px_rgba(46,26,18,0.6)] pointer-events-none"></div>
+<h2 class="font-gothic text-2xl text-center mb-6 font-bold border-b-2 border-[#543b3f]/30 pb-2 mx-8 text-[#543b3f]">Últimas Memorias</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+<!-- Stat 1 -->
+<div class="flex items-center gap-4">
+<div class="p-2 bg-[#543b3f]/10 rounded-full border border-[#543b3f]/20">
+<span class="material-symbols-outlined text-[#8a1c1c] text-2xl">hourglass_bottom</span>
+</div>
+<div>
+<p class="font-serif italic text-sm text-[#543b3f]">Tiempo Sobrevivido</p>
+<p class="font-gothic text-xl font-bold">02:14:35</p>
+</div>
+</div>
+<!-- Stat 2 -->
+<div class="flex items-center gap-4">
+<div class="p-2 bg-[#543b3f]/10 rounded-full border border-[#543b3f]/20">
+<span class="material-symbols-outlined text-[#8a1c1c] text-2xl">swords</span>
+</div>
+<div>
+<p class="font-serif italic text-sm text-[#543b3f]">Enemigos Abatidos</p>
+<p class="font-gothic text-xl font-bold">42</p>
+</div>
+</div>
+<!-- Stat 3 -->
+<div class="flex items-center gap-4">
+<div class="p-2 bg-[#543b3f]/10 rounded-full border border-[#543b3f]/20">
+<span class="material-symbols-outlined text-[#8a1c1c] text-2xl">savings</span>
+</div>
+<div>
+<p class="font-serif italic text-sm text-[#543b3f]">Oro Saqueado</p>
+<p class="font-gothic text-xl font-bold">1,250</p>
+</div>
+</div>
+<!-- Stat 4 -->
+<div class="flex items-center gap-4">
+<div class="p-2 bg-[#543b3f]/10 rounded-full border border-[#543b3f]/20">
+<span class="material-symbols-outlined text-[#8a1c1c] text-2xl">military_tech</span>
+</div>
+<div>
+<p class="font-serif italic text-sm text-[#543b3f]">Nivel Alcanzado</p>
+<p class="font-gothic text-xl font-bold">12</p>
+</div>
+</div>
+</div>
+<div class="mt-8 pt-4 border-t border-[#543b3f]/20 text-center relative z-10">
+<p class="font-serif italic text-[#543b3f] text-sm mb-1">Causa de la Defunción</p>
+<p class="font-gothic text-[#8a1c1c] font-bold text-lg tracking-wide">Desangrado por Garra de Wyvern</p>
+</div>
+</div>
+<!-- Action Slabs -->
+<div class="mt-10 flex flex-col md:flex-row gap-6 w-full px-4 justify-center items-center">
+<button class="stone-btn w-full md:w-auto px-8 py-4 flex items-center justify-center gap-3 group relative overflow-hidden rounded-sm">
+<span class="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors">restart_alt</span>
+<span class="font-display font-bold text-gray-300 group-hover:text-white uppercase tracking-wider text-sm transition-colors">Reintentar desde el Último Suspiro</span>
+<!-- Hover flare -->
+<div class="absolute inset-0 bg-gradient-to-r from-transparent via-primary/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1s_infinite]"></div>
+</button>
+<button class="stone-btn w-full md:w-auto px-8 py-4 flex items-center justify-center gap-3 group relative overflow-hidden rounded-sm grayscale hover:grayscale-0">
+<span class="material-symbols-outlined text-gray-500 group-hover:text-primary transition-colors">logout</span>
+<span class="font-display font-bold text-gray-400 group-hover:text-white uppercase tracking-wider text-sm transition-colors">Regresar al Vacío</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Footer Version -->
+<div class="fixed bottom-4 right-4 z-50 opacity-20 hover:opacity-50 transition-opacity">
+<p class="text-xs font-mono text-white">Engine v.4.0.2 - Build: FINAL_BREATH</p>
+</div>
+<script>
+        tailwind.config.theme.extend.keyframes = {
+            ...tailwind.config.theme.extend.keyframes,
+            shimmer: {
+                '100%': { transform: 'translateX(100%)' },
+            }
+        }
+    </script>
+</body></html>

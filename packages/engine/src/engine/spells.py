@@ -82,11 +82,15 @@ def _safe_get(data: Dict, key: str, default: Any) -> Any:
 
 def _extract_school(data: Dict) -> str:
     school_data = data.get("school", {})
-    return school_data.get("name", "Unknown")
+    if isinstance(school_data, dict):
+        return school_data.get("name", "Unknown")
+    return str(school_data)
 
 def _extract_components(data: Dict) -> str:
     components = data.get("components", [])
-    return ",".join(components)
+    if isinstance(components, list):
+        return ",".join(components)
+    return str(components)
 
 def _extract_description(data: Dict) -> str:
     lines = data.get("desc", [])
@@ -129,7 +133,10 @@ def _extract_damage(data: Dict) -> Dict[str, Any]:
 
 def _parse_damage_data(damage_data: Dict) -> Dict[str, Any]:
     dtype_obj = damage_data.get("damage_type", {})
-    dtype = dtype_obj.get("name", "").lower()
+    if isinstance(dtype_obj, dict):
+        dtype = dtype_obj.get("name", "").lower()
+    else:
+        dtype = str(dtype_obj).lower() if dtype_obj else ""
     
     damage_at_slot = damage_data.get("damage_at_slot_level")
     character_damage = damage_data.get("damage_at_character_level")
@@ -154,21 +161,23 @@ def _parse_dice_from_slots(damage_dict: Dict, dtype: str) -> Dict[str, Any]:
     return _parse_dice_string(dice_str, dtype)
 
 def _parse_dice_string(dice_str: str, dtype: str) -> Dict[str, Any]:
-    if "d" not in dice_str:
+    if not dice_str:
         return {"sides": 0, "count": 0, "type": dtype}
         
-    parts = dice_str.split("d")
-    if len(parts) != 2:
-        return {"sides": 0, "count": 0, "type": dtype}
+    # Remove all whitespace
+    dice_str = dice_str.replace(" ", "")
+    
+    # Simple regex for XdY
+    import re
+    match = re.search(r"(\d+)d(\d+)", dice_str)
+    if match:
+        return {
+            "sides": int(match.group(2)),
+            "count": int(match.group(1)),
+            "type": dtype
+        }
         
-    if not parts[0].isdigit() or not parts[1].isdigit():
-        return {"sides": 0, "count": 0, "type": dtype}
-        
-    return {
-        "sides": int(parts[1]),
-        "count": int(parts[0]), 
-        "type": dtype
-    }
+    return {"sides": 0, "count": 0, "type": dtype}
 
 def get_all_spells() -> List[Spell]:
     conn = get_db_connection()

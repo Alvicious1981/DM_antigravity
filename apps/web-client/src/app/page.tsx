@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import WelcomeScreen from './WelcomeScreen';
 import Dashboard from './Dashboard';
 import MainMenu from './MainMenu';
-import CharacterCreator from '../components/CharacterCreator';
+import { HighFidelityCharacterCreator as CharacterCreator } from '../components/stitch/HighFidelityCharacterCreator';
 
 type GameState = 'SPLASH' | 'MENU' | 'CREATOR' | 'GAME';
 
@@ -73,7 +73,7 @@ export default function Home() {
 
       {view === 'CREATOR' && (
         <CharacterCreator
-          onCreate={handleCreateSession}
+          onComplete={handleCreateSession}
           onCancel={() => setView('MENU')}
         />
       )}

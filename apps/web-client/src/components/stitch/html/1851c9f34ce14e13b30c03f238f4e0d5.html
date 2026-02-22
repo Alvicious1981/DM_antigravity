@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dragons and Dungeons - Inventory Forge</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#d41132",
+                        "background-light": "#f8f6f6", // Not used in this dark design but required by prompt
+                        "background-dark": "#181112",
+                        "leather-dark": "#1a1213",
+                        "leather-light": "#2a1f21",
+                        "gold-accent": "#cfa066",
+                        "silver-accent": "#8a8d91",
+                        "slot-bg": "#0f0a0a",
+                        "slot-inner": "#080505",
+                    },
+                    fontFamily: {
+                        "display": ["Newsreader", "serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.125rem", 
+                        "lg": "0.25rem", 
+                        "xl": "0.5rem", 
+                        "full": "0.75rem"
+                    },
+                    boxShadow: {
+                        "inset-deep": "inset 2px 2px 5px rgba(0,0,0,0.8), inset -1px -1px 2px rgba(255,255,255,0.05)",
+                        "metal-rim": "0 1px 0 rgba(255,255,255,0.1), 0 -1px 0 rgba(0,0,0,0.5), inset 0 1px 2px rgba(0,0,0,0.5)",
+                    },
+                    backgroundImage: {
+                        "worn-leather": "radial-gradient(circle at center, #23181a 0%, #110b0c 100%)",
+                        "iron-texture": "linear-gradient(180deg, #3a3a3a 0%, #222 50%, #1a1a1a 100%)",
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for inventory if needed */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a1213; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #39282b; 
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #543b3f; 
+        }
+
+        .text-shadow-sm {
+            text-shadow: 1px 1px 0px rgba(0,0,0,0.8);
+        }
+        
+        .bevel-border {
+            border: 1px solid #3d2e30;
+            border-bottom-color: #1a1213;
+            border-right-color: #1a1213;
+        }
+    </style>
+</head>
+<body class="bg-background-dark text-slate-100 font-display min-h-screen flex flex-col overflow-hidden selection:bg-primary selection:text-white">
+<!-- Main Container -->
+<div class="relative flex h-screen w-full flex-col bg-worn-leather overflow-hidden group/design-root">
+<!-- Header -->
+<header class="flex-none flex items-center justify-between border-b-2 border-[#39282b] bg-[#1f1516]/90 px-8 py-4 shadow-lg z-20 relative">
+<div class="flex items-center gap-4">
+<div class="p-2 bg-gradient-to-br from-[#39282b] to-[#181112] border border-[#543b3f] rounded shadow-metal-rim">
+<span class="material-symbols-outlined text-primary text-2xl">swords</span>
+</div>
+<div>
+<h2 class="text-[#e2d5d7] text-2xl font-bold tracking-widest uppercase text-shadow-sm">Inventario — Forja</h2>
+<p class="text-[#8a6a6f] text-sm font-medium tracking-wide">Level 4 Paladin • Oath of Vengeance</p>
+</div>
+</div>
+<div class="flex gap-6 items-center">
+<div class="flex flex-col items-end">
+<span class="text-[#cfa066] text-lg font-bold">1,245 GP</span>
+<span class="text-[#8a8d91] text-xs uppercase tracking-wider">Gold Weight: 12.4 lbs</span>
+</div>
+<div class="h-10 w-px bg-[#39282b]"></div>
+<div class="flex flex-col items-end">
+<span class="text-slate-300 text-lg font-bold">45 / 80</span>
+<span class="text-[#8a8d91] text-xs uppercase tracking-wider">Carry Capacity</span>
+</div>
+</div>
+</header>
+<!-- Main Content Area: 3 Columns -->
+<main class="flex-1 flex overflow-hidden relative">
+<!-- Background Texture Overlay -->
+<div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
+<!-- LEFT COLUMN: Analytical / Stats -->
+<section class="w-1/4 min-w-[300px] flex flex-col border-r-4 border-[#120c0d] bg-[#1a1213]/80 relative z-10 shadow-2xl">
+<!-- Inner Divider styling -->
+<div class="absolute right-[-4px] top-0 bottom-0 w-1 bg-[#2a1e20] border-l border-[#000]"></div>
+<div class="p-6 space-y-8 overflow-y-auto h-full custom-scrollbar">
+<!-- Vitals Cluster -->
+<div class="space-y-4">
+<div class="flex items-center justify-between">
+<h3 class="text-[#cfa066] uppercase text-sm tracking-widest font-bold border-b border-[#39282b] pb-1 w-full">Vitals</h3>
+</div>
+<!-- HP Radial/Liquid -->
+<div class="flex items-center gap-4 bg-[#0f0a0a] p-4 rounded border border-[#39282b] shadow-inset-deep">
+<div class="relative size-16 flex items-center justify-center rounded-full border-4 border-[#2a1e20] bg-[#181112] shadow-metal-rim">
+<span class="material-symbols-outlined text-primary text-3xl z-10">favorite</span>
+<div class="absolute bottom-0 w-full bg-primary/20 h-1/2 rounded-b-full"></div>
+</div>
+<div class="flex flex-col flex-1">
+<div class="flex justify-between items-baseline">
+<span class="text-slate-400 text-xs uppercase">Health Points</span>
+<span class="text-white font-bold text-xl">45<span class="text-slate-500 text-sm">/100</span></span>
+</div>
+<div class="w-full bg-[#2a1e20] h-2 mt-2 rounded-full overflow-hidden border border-black/50">
+<div class="bg-primary h-full w-[45%] shadow-[0_0_10px_rgba(212,17,50,0.6)]"></div>
+</div>
+</div>
+</div>
+<!-- Spell Slots Bubbles -->
+<div class="bg-[#0f0a0a] p-4 rounded border border-[#39282b] shadow-inset-deep">
+<div class="flex justify-between items-baseline mb-3">
+<span class="text-slate-400 text-xs uppercase">Spell Slots (Lvl 1)</span>
+<span class="text-white font-bold">3/4</span>
+</div>
+<div class="flex justify-between gap-2">
+<div class="h-8 flex-1 rounded-sm bg-blue-900/40 border border-blue-900/60 shadow-[0_0_8px_rgba(30,58,138,0.4)] relative overflow-hidden group">
+<div class="absolute inset-0 bg-blue-600/20 group-hover:bg-blue-600/30 transition-colors"></div>
+<div class="absolute bottom-0 w-full h-full bg-gradient-to-t from-blue-700 to-blue-500 opacity-80"></div>
+</div>
+<div class="h-8 flex-1 rounded-sm bg-blue-900/40 border border-blue-900/60 shadow-[0_0_8px_rgba(30,58,138,0.4)] relative overflow-hidden">
+<div class="absolute bottom-0 w-full h-full bg-gradient-to-t from-blue-700 to-blue-500 opacity-80"></div>
+</div>
+<div class="h-8 flex-1 rounded-sm bg-blue-900/40 border border-blue-900/60 shadow-[0_0_8px_rgba(30,58,138,0.4)] relative overflow-hidden">
+<div class="absolute bottom-0 w-full h-full bg-gradient-to-t from-blue-700 to-blue-500 opacity-80"></div>
+</div>
+<div class="h-8 flex-1 rounded-sm bg-[#1a1213] border border-[#39282b] shadow-inner relative overflow-hidden">
+<!-- Empty slot -->
+</div>
+</div>
+</div>
+</div>
+<!-- Attributes Grid -->
+<div class="space-y-4">
+<h3 class="text-[#cfa066] uppercase text-sm tracking-widest font-bold border-b border-[#39282b] pb-1">Attributes</h3>
+<div class="grid grid-cols-2 gap-3">
+<!-- Stat Block -->
+<div class="bg-[#23181a] p-2 border border-[#39282b] flex items-center justify-between shadow-sm hover:border-[#543b3f] transition-colors">
+<div class="flex flex-col">
+<span class="text-white text-xl font-bold leading-none">18</span>
+<span class="text-[#8a6a6f] text-xs font-bold uppercase tracking-wider">STR</span>
+</div>
+<span class="text-green-500 text-sm font-bold">+4</span>
+</div>
+<!-- Stat Block -->
+<div class="bg-[#23181a] p-2 border border-[#39282b] flex items-center justify-between shadow-sm hover:border-[#543b3f] transition-colors">
+<div class="flex flex-col">
+<span class="text-white text-xl font-bold leading-none">12</span>
+<span class="text-[#8a6a6f] text-xs font-bold uppercase tracking-wider">DEX</span>
+</div>
+<span class="text-green-500 text-sm font-bold">+1</span>
+</div>
+<!-- Stat Block -->
+<div class="bg-[#23181a] p-2 border border-[#39282b] flex items-center justify-between shadow-sm hover:border-[#543b3f] transition-colors">
+<div class="flex flex-col">
+<span class="text-white text-xl font-bold leading-none">14</span>
+<span class="text-[#8a6a6f] text-xs font-bold uppercase tracking-wider">CON</span>
+</div>
+<span class="text-green-500 text-sm font-bold">+2</span>
+</div>
+<!-- Stat Block -->
+<div class="bg-[#23181a] p-2 border border-[#39282b] flex items-center justify-between shadow-sm hover:border-[#543b3f] transition-colors">
+<div class="flex flex-col">
+<span class="text-white text-xl font-bold leading-none">10</span>
+<span class="text-[#8a6a6f] text-xs font-bold uppercase tracking-wider">INT</span>
+</div>
+<span class="text-slate-500 text-sm font-bold">0</span>
+</div>
+<!-- Stat Block -->
+<div class="bg-[#23181a] p-2 border border-[#39282b] flex items-center justify-between shadow-sm hover:border-[#543b3f] transition-colors">
+<div class="flex flex-col">
+<span class="text-white text-xl font-bold leading-none">12</span>
+<span class="text-[#8a6a6f] text-xs font-bold uppercase tracking-wider">WIS</span>
+</div>
+<span class="text-green-500 text-sm font-bold">+1</span>
+</div>
+<!-- Stat Block -->
+<div class="bg-[#23181a] p-2 border border-[#39282b] flex items-center justify-between shadow-sm hover:border-[#543b3f] transition-colors">
+<div class="flex flex-col">
+<span class="text-white text-xl font-bold leading-none">8</span>
+<span class="text-[#8a6a6f] text-xs font-bold uppercase tracking-wider">CHA</span>
+</div>
+<span class="text-primary text-sm font-bold">-1</span>
+</div>
+</div>
+</div>
+<!-- Defenses -->
+<div class="bg-[#23181a] p-3 border border-[#39282b] flex justify-around items-center rounded-sm">
+<div class="text-center">
+<span class="block text-[#8a8d91] text-xs uppercase mb-1">Armor Class</span>
+<div class="relative inline-flex items-center justify-center size-12 bg-[#0f0a0a] border-2 border-[#543b3f] rounded-full shadow-metal-rim">
+<span class="material-symbols-outlined text-[#543b3f] absolute opacity-30 text-4xl">shield</span>
+<span class="text-white font-bold text-xl relative z-10">18</span>
+</div>
+</div>
+<div class="w-px h-10 bg-[#39282b]"></div>
+<div class="text-center">
+<span class="block text-[#8a8d91] text-xs uppercase mb-1">Initiative</span>
+<span class="text-white font-bold text-xl block">+1</span>
+</div>
+<div class="w-px h-10 bg-[#39282b]"></div>
+<div class="text-center">
+<span class="block text-[#8a8d91] text-xs uppercase mb-1">Speed</span>
+<span class="text-white font-bold text-xl block">30</span>
+</div>
+</div>
+</div>
+</section>
+<!-- MIDDLE COLUMN: Paperdoll / Character -->
+<section class="flex-1 min-w-[400px] relative flex flex-col items-center justify-center p-8 bg-[#130d0e]">
+<!-- Floor glow -->
+<div class="absolute bottom-0 w-full h-1/3 bg-gradient-to-t from-black via-[#1a0508] to-transparent opacity-60 pointer-events-none"></div>
+<div class="relative w-full max-w-lg h-full flex flex-col items-center justify-center">
+<!-- Character Silhouette (Placeholder) -->
+<div class="absolute inset-0 flex items-center justify-center z-0 opacity-80">
+<!-- We simulate a silhouette with a dark filtered image -->
+<div class="h-[80%] w-auto aspect-[1/2] bg-black rounded-full blur-xl absolute opacity-60 translate-y-10"></div>
+<img class="h-[85%] w-full object-contain object-center drop-shadow-2xl grayscale contrast-125 brightness-75 mask-image-gradient" data-alt="Dark moody silhouette of a knight in armor standing in shadows" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB5SKBFKrPIlOrxhtWuEXoJqBLX64jruspBTgQBCPovyqwYx1aSg-wi8iRIjCy5csmK_O495hnl5XXRe8ms5jpZvrl0n3F-YRtRPUGy_ybaq2aHxNvBZjn7zO-pJ9gywi95YDyLifh9vuLCU53PELyvacJLhWOULZbhb0qxVG_Y7wv5SjM5dcG_W9HQMCZmLMSHLl1FPRxqVNQA4c6y7e3w2PLelg13O8d35RGwFgd2hphlJxPjzwsDvRdci37F_YrB3cSDB-pdBg" style="mask-image: linear-gradient(to bottom, black 80%, transparent 100%);"/>
+</div>
+<!-- Equipment Slots Layout -->
+<div class="z-10 w-full h-full relative">
+<!-- HEAD SLOT -->
+<div class="absolute top-[5%] left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 group cursor-pointer">
+<div class="size-16 bg-[#0f0a0a] border-2 border-[#cfa066] rounded-sm shadow-[0_0_15px_rgba(0,0,0,0.8)] flex items-center justify-center relative overflow-hidden transition-transform group-hover:scale-105 group-hover:border-primary">
+<div class="absolute inset-0 bg-gradient-to-br from-[#cfa066]/10 to-transparent"></div>
+<img class="w-10 h-10 object-contain opacity-80" data-alt="Icon of an iron helmet" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDi6fnqCF3Hjg12AlsIrbSKYZs5k-0jBYYjAdtu-iDZNMQ9YfwDUBULwfw0GUJGiC8CvTARw7l2XBhCorB76up5W7nhGZ2YQLCxm1ZBGDL1vL-x5MyXRRM2JsVBAT6TSvBLE6DAEVq_RygrQEdT8TfLjq6D1aj-SSfrzY6mukzkFwbUdMemK7G4EstpiQ6r5g8vNEsIA6BEJbR1trvkPe9nKDmSpj-QeJ3zUG6MIQE7aJDR6vk911x7SUvXBpnSMr0D3f-dYW1nmA"/>
+</div>
+<span class="text-[#cfa066] text-xs uppercase tracking-widest bg-black/80 px-2 py-0.5 rounded border border-[#39282b]">Head</span>
+</div>
+<!-- CHEST SLOT -->
+<div class="absolute top-[25%] left-[20%] flex flex-col items-center gap-2 group cursor-pointer">
+<div class="size-16 bg-[#0f0a0a] border-2 border-[#cfa066] rounded-sm shadow-[0_0_15px_rgba(0,0,0,0.8)] flex items-center justify-center relative overflow-hidden transition-transform group-hover:scale-105 group-hover:border-primary">
+<span class="material-symbols-outlined text-[#543b3f] text-3xl">checkroom</span>
+</div>
+<span class="text-[#8a8d91] text-xs uppercase tracking-widest bg-black/80 px-2 py-0.5 rounded border border-[#39282b]">Chest</span>
+<!-- Connecting Line -->
+<div class="absolute top-8 left-full w-12 h-px bg-[#8a8d91] opacity-50"></div>
+</div>
+<!-- ARMS SLOT (Right side for symmetry) -->
+<div class="absolute top-[25%] right-[20%] flex flex-col items-center gap-2 group cursor-pointer">
+<div class="size-16 bg-[#0f0a0a] border-2 border-[#cfa066] rounded-sm shadow-[0_0_15px_rgba(0,0,0,0.8)] flex items-center justify-center relative overflow-hidden transition-transform group-hover:scale-105 group-hover:border-primary">
+<img class="w-10 h-10 object-contain opacity-80" data-alt="Icon of leather gauntlets" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCRBJJJi7p-BVZUxPntFE2cxhLsdjnTMx3eQYIbUa2czV4T_dnF_yjS_boTfvFReTii0vti_I9-yMtoykD38AYgBkt_hNO8buAOYFT3UCcDfnwD0-zqadCk8rn1dxCZe7yQ1t52hL5M8Tq_dx5fcSz1ha9IczFeI5fjSNyaF-aKNXrbleVfeHu11_FC41BwX_W7YsrQ3STZobGYpopDRPibj-t4Rvz6wALDDPy_lULW6S6MQRMd65tv5JvyP-ftrcI2fiiNsUZozA"/>
+</div>
+<span class="text-[#cfa066] text-xs uppercase tracking-widest bg-black/80 px-2 py-0.5 rounded border border-[#39282b]">Arms</span>
+<!-- Connecting Line -->
+<div class="absolute top-8 right-full w-12 h-px bg-[#8a8d91] opacity-50"></div>
+</div>
+<!-- MAIN HAND SLOT -->
+<div class="absolute top-[50%] left-[10%] flex flex-col items-center gap-2 group cursor-pointer">
+<div class="size-20 bg-[#0f0a0a] border-2 border-[#cfa066] rounded-sm shadow-[0_0_15px_rgba(0,0,0,0.8)] flex items-center justify-center relative overflow-hidden transition-transform group-hover:scale-105 group-hover:border-primary ring-1 ring-black ring-offset-2 ring-offset-[#39282b]">
+<img class="w-14 h-14 object-contain opacity-90 rotate-45" data-alt="Icon of a jagged iron sword" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCFvtzvOiWjeMql1iWWHhRD04aMEf_C6k6aff_2-GgVG9t_Pme7axHnZtXnFXk2hJaBexZOU_r0VX3Ln3mgJOU9W-1W8EFJfpIJGixPNY97KgMmuGU5uXgp30x_Jow5EkGnMD8Nlb2oBfAWsEXA-Sz6iCQ4-rtesrXtPjIrA8xnKOgCpdDZ0u4h5ib12pw85xqj3Y4TDBZebrDXMOW4BT8V3BCIMA1l3KDbcvUv3mjBuZCBQcQcBu8KO7d0RrK7M-zlwACRwtWGEQ"/>
+<div class="absolute bottom-0 right-0 bg-[#39282b] text-white text-[10px] px-1">Main</div>
+</div>
+<span class="text-[#cfa066] text-xs uppercase tracking-widest bg-black/80 px-2 py-0.5 rounded border border-[#39282b]">Weapon</span>
+</div>
+<!-- OFF HAND SLOT -->
+<div class="absolute top-[50%] right-[10%] flex flex-col items-center gap-2 group cursor-pointer">
+<div class="size-20 bg-[#0f0a0a] border-2 border-[#543b3f] rounded-sm shadow-[0_0_15px_rgba(0,0,0,0.8)] flex items-center justify-center relative overflow-hidden transition-transform group-hover:scale-105 group-hover:border-primary opacity-70">
+<span class="material-symbols-outlined text-[#39282b] text-4xl">shield</span>
+<div class="absolute bottom-0 right-0 bg-[#39282b] text-white text-[10px] px-1">Off</div>
+</div>
+<span class="text-[#8a8d91] text-xs uppercase tracking-widest bg-black/80 px-2 py-0.5 rounded border border-[#39282b]">Shield</span>
+</div>
+<!-- LEGS SLOT -->
+<div class="absolute bottom-[15%] left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 group cursor-pointer">
+<!-- Connecting Line Top -->
+<div class="absolute bottom-full left-1/2 w-px h-12 bg-[#8a8d91] opacity-50"></div>
+<div class="size-16 bg-[#0f0a0a] border-2 border-[#cfa066] rounded-sm shadow-[0_0_15px_rgba(0,0,0,0.8)] flex items-center justify-center relative overflow-hidden transition-transform group-hover:scale-105 group-hover:border-primary">
+<img class="w-10 h-10 object-contain opacity-80" data-alt="Icon of leather boots" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDdl1Z7NAUGI4ZjEJ-mWPiam2uSDc8e0ENQbSQMcpacvSA6L47VCIC7Y8tZJ9jWn5TZR3rpK-Y8dT8j4Vx2zjmejiOZoQ49XnhBREYyUDlb6umyNNpLnlU0IWwhVyoEfGzzH7D7SksXI8t1EXFlgu9wvoruAADA-h2WZ1T0yR2XsLp59M5-gC6DY7W331QoHSH6R9MOLd460Fk4HsaN2nzlwajDclnqFfkqWNopHXeRjXEN5wi7-6XhcGVpPTTOx-TErtdyS9mRVw"/>
+</div>
+<span class="text-[#cfa066] text-xs uppercase tracking-widest bg-black/80 px-2 py-0.5 rounded border border-[#39282b]">Legs</span>
+</div>
+</div>
+</div>
+</section>
+<!-- RIGHT COLUMN: Backpack Matrix -->
+<section class="w-1/3 min-w-[340px] flex flex-col border-l-4 border-[#120c0d] bg-[#1a1213]/90 relative z-10 shadow-2xl">
+<!-- Inner Divider styling -->
+<div class="absolute left-[-4px] top-0 bottom-0 w-1 bg-[#2a1e20] border-r border-[#000]"></div>
+<div class="flex flex-col h-full">
+<!-- Backpack Header -->
+<div class="p-4 border-b border-[#39282b] flex justify-between items-center bg-[#23181a]">
+<h3 class="text-[#cfa066] uppercase text-sm tracking-widest font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-lg">backpack</span> Backpack
+                        </h3>
+<div class="flex gap-2">
+<button class="p-1 hover:bg-[#39282b] rounded text-[#8a8d91] transition-colors"><span class="material-symbols-outlined">filter_list</span></button>
+<button class="p-1 hover:bg-[#39282b] rounded text-[#8a8d91] transition-colors"><span class="material-symbols-outlined">sort</span></button>
+</div>
+</div>
+<!-- The Grid -->
+<div class="p-6 flex-1 overflow-y-auto custom-scrollbar">
+<div class="grid grid-cols-5 gap-3 auto-rows-fr aspect-square">
+<!-- Filled Slot 1: Potion -->
+<div class="aspect-square bg-[#23181a] border border-[#543b3f] rounded-sm relative group cursor-pointer hover:border-primary hover:shadow-[0_0_10px_rgba(212,17,50,0.3)] transition-all">
+<div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')] opacity-20"></div>
+<div class="h-full w-full flex items-center justify-center p-1">
+<img class="w-full h-full object-contain drop-shadow-lg" data-alt="Small red health potion bottle" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAeC7S5InMz5psHntZaNKA1WnQguvb6x-Z8iUysg3ep7wRA6DxdSZEmF_PVARv8yMemqfYVjFuQHlSla2PeHg_ZcAXkMjMt7W65lMAMjT5tfkrBrTCDl_A4gQSKzFFlCrxfgtS06iAzvYL6l1mLpdkPinvG7Iisy-WV6O3aaxmN_aJIGAw3xCd-X2nUpRBepEvhtSKCCBgf1ZiA4WaMBJp_eRGARiNYO6-qy_b5T-OZ09SUeYh0g9JIZLi9K4GIghOiuigBbdn3Qw"/>
+</div>
+<span class="absolute bottom-0.5 right-0.5 text-[10px] font-bold text-white bg-black/60 px-1 rounded-sm">x3</span>
+</div>
+<!-- Filled Slot 2: Scroll -->
+<div class="aspect-square bg-[#23181a] border border-[#543b3f] rounded-sm relative group cursor-pointer hover:border-primary hover:shadow-[0_0_10px_rgba(212,17,50,0.3)] transition-all">
+<div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')] opacity-20"></div>
+<div class="h-full w-full flex items-center justify-center p-1">
+<span class="material-symbols-outlined text-[#cfa066] text-4xl drop-shadow-md">menu_book</span>
+</div>
+</div>
+<!-- Filled Slot 3: Dagger -->
+<div class="aspect-square bg-[#23181a] border border-[#543b3f] rounded-sm relative group cursor-pointer hover:border-primary hover:shadow-[0_0_10px_rgba(212,17,50,0.3)] transition-all">
+<div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')] opacity-20"></div>
+<div class="h-full w-full flex items-center justify-center p-1">
+<span class="material-symbols-outlined text-slate-300 text-4xl drop-shadow-md rotate-45">colorize</span>
+</div>
+</div>
+<!-- Empty Slots (Looping for the rest of 5x5 = 25 - 3 = 22 slots) -->
+<!-- We use a visually sunken style for empty slots -->
+<div class="aspect-square bg-[#0a0505] border border-[#2a1e20] rounded-sm shadow-inset-deep relative flex items-center justify-center group">
+<div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')] opacity-10 mix-blend-overlay"></div>
+</div>
+<div class="aspect-square bg-[#0a0505] border border-[#2a1e20] rounded-sm shadow-inset-deep relative flex items-center justify-center group">
+<div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')] opacity-10 mix-blend-overlay"></div>
+</div>
+<!-- Row 2 -->
+<div class="aspect-square bg-[#0a0505] border border-[#2a1e20] rounded-sm shadow-inset-deep relative flex items-center justify-center group"></div>
+<div class="aspect-square bg-[#0a0505] border border-[#2a1e20] rounded-sm shadow-inset-deep relative flex items-center justify-center group"></div>
+<div class="aspect-square bg-[#0a0505] border border-[#2a1e20] rounded-sm shadow-inset-deep relative flex items-center justify-center group"></div>
+<div class="aspect-square bg-[#0a0505] border border-[#2a1e20] rounded-sm shadow-inset-deep relative flex items-center justify-center group"></div>
+<div class="aspect-square bg-[#0a0505] border border-[#2a1e20] rounded-sm shadow-inset-deep relative flex items-center justify-center group"></div>
+<!-- Row 3 -->
+<div class="aspect-square bg-[#0a0505] border border-[#2a1e20] rounded-sm shadow-inset-deep relative flex items-center justify-center group"></div>
+<div class="aspect-square bg-[#0a0505] border border-[#2a1e20] rounded-sm shadow-inset-deep relative flex items-center justify-center group"></div>
+<div class="aspect-square bg-[#0a0505] border border-[#2a1e20] rounded-sm shadow-inset-deep relative flex items-center justify-center group"></div>
+<div class="aspect-square bg-[#0a0505] border border-[#2a1e20] rounded-sm shadow-inset-deep relative flex items-center justify-center group"></div>
+<div class="aspect-square bg-[#0a0505] border border-[#2a1e20] rounded-sm shadow-inset-deep relative flex items-center justify-center group"></div>
+<!-- Row 4 -->
+<div class="aspect-square bg-[#0a0505] border border-[#2a1e20] rounded-sm shadow-inset-deep relative flex items-center justify-center group"></div>
+<div class="aspect-square bg-[#0a0505] border border-[#2a1e20] rounded-sm shadow-inset-deep relative flex items-center justify-center group"></div>
+<div class="aspect-square bg-[#0a0505] border border-[#2a1e20] rounded-sm shadow-inset-deep relative flex items-center justify-center group"></div>
+<div class="aspect-square bg-[#0a0505] border border-[#2a1e20] rounded-sm shadow-inset-deep relative flex items-center justify-center group"></div>
+<div class="aspect-square bg-[#0a0505] border border-[#2a1e20] rounded-sm shadow-inset-deep relative flex items-center justify-center group"></div>
+<!-- Row 5 -->
+<div class="aspect-square bg-[#0a0505] border border-[#2a1e20] rounded-sm shadow-inset-deep relative flex items-center justify-center group"></div>
+<div class="aspect-square bg-[#0a0505] border border-[#2a1e20] rounded-sm shadow-inset-deep relative flex items-center justify-center group"></div>
+<div class="aspect-square bg-[#0a0505] border border-[#2a1e20] rounded-sm shadow-inset-deep relative flex items-center justify-center group"></div>
+<div class="aspect-square bg-[#0a0505] border border-[#2a1e20] rounded-sm shadow-inset-deep relative flex items-center justify-center group"></div>
+<div class="aspect-square bg-[#0a0505] border border-[#2a1e20] rounded-sm shadow-inset-deep relative flex items-center justify-center group"></div>
+</div>
+</div>
+<!-- Footer Action in Column -->
+<div class="p-6 border-t border-[#39282b] bg-[#23181a]">
+<button class="w-full relative group h-14 flex items-center justify-center overflow-hidden rounded bg-[#1f1a1b] shadow-lg border-2 border-[#3d3d3d] transition-all hover:border-primary hover:shadow-[0_0_20px_rgba(212,17,50,0.4)] active:scale-[0.98]">
+<!-- Stone Texture on Button -->
+<div class="absolute inset-0 bg-iron-texture opacity-80 group-hover:opacity-100 transition-opacity"></div>
+<span class="relative z-10 text-slate-300 font-bold text-lg uppercase tracking-widest group-hover:text-white flex items-center gap-2">
+<span class="material-symbols-outlined">close</span> Cerrar
+                            </span>
+</button>
+</div>
+</div>
+</section>
+</main>
+<!-- Global Vignette Overlay for Immersion -->
+<div class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_30%,rgba(0,0,0,0.8)_100%)] z-50"></div>
+</div>
+</body></html>

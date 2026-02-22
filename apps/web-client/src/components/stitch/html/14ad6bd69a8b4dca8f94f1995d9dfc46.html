@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Attribute Selection &amp; Arcane Runes</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f26c0d",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#181411", // Keeping consistent with the component example
+                        "parchment": "#d4c5b0",
+                        "parchment-dark": "#2a231d",
+                        "stone": "#392f28",
+                        "stone-light": "#54453b",
+                        "rune-blue": "#40c4ff",
+                        "ember": "#ff4d00",
+                        "crimson": "#dc2626",
+                    },
+                    fontFamily: {
+                        "display": ["Newsreader", "serif"],
+                        "sans": ["Newsreader", "serif"] // Forcing serif everywhere for the academic feel
+                    },
+                    backgroundImage: {
+                        'leather-texture': "radial-gradient(circle at center, #27201b 0%, #181411 100%)",
+                        'stone-texture': "linear-gradient(to bottom right, #3a322c, #27201b)",
+                    },
+                    boxShadow: {
+                        'inset-stone': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.6)',
+                        'glow-ember': '0 0 15px rgba(242, 108, 13, 0.3)',
+                        'glow-rune': '0 0 8px rgba(64, 196, 255, 0.4)',
+                        'glow-crimson': '0 0 20px rgba(220, 38, 38, 0.4)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for the dark fantasy feel */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #181411; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #392f28; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #54453b; 
+        }
+
+        /* Text shadow for rune glow effect */
+        .text-glow-rune {
+            text-shadow: 0 0 5px rgba(64, 196, 255, 0.6);
+        }
+        
+        .text-glow-ember {
+            text-shadow: 0 0 10px rgba(242, 108, 13, 0.5);
+        }
+
+        .crimson-pulse {
+            animation: pulse-crimson 2s infinite;
+        }
+
+        @keyframes pulse-crimson {
+            0% { text-shadow: 0 0 5px rgba(220, 38, 38, 0.5); opacity: 1; }
+            50% { text-shadow: 0 0 20px rgba(220, 38, 38, 0.8); opacity: 0.8; }
+            100% { text-shadow: 0 0 5px rgba(220, 38, 38, 0.5); opacity: 1; }
+        }
+
+        /* Texture overlay for stone elements */
+        .stone-surface {
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E"), linear-gradient(to bottom, #392f28, #27201b);
+            border: 1px solid #54453b;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 4px 6px rgba(0,0,0,0.5);
+        }
+
+        .btn-rune:active {
+            transform: translateY(2px);
+            box-shadow: inset 0 4px 8px rgba(0,0,0,0.6);
+            background-image: linear-gradient(to bottom, #27201b, #392f28);
+        }
+    </style>
+</head>
+<body class="bg-background-dark text-slate-100 font-display min-h-screen flex flex-col overflow-x-hidden selection:bg-primary selection:text-white">
+<!-- Header -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-[#392f28] bg-[#181411] px-6 lg:px-10 py-3 z-20 relative shadow-lg">
+<div class="flex items-center gap-4 text-white">
+<div class="size-8 text-primary">
+<span class="material-symbols-outlined text-3xl">swords</span>
+</div>
+<h2 class="text-white text-xl font-bold leading-tight tracking-widest uppercase">Dragons &amp; Dungeons</h2>
+</div>
+<div class="flex gap-4">
+<button class="flex items-center justify-center overflow-hidden rounded bg-[#392f28] hover:bg-[#54453b] text-white size-10 transition-colors border border-[#54453b]">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<button class="flex items-center justify-center overflow-hidden rounded bg-[#392f28] hover:bg-[#54453b] text-white size-10 transition-colors border border-[#54453b]">
+<span class="material-symbols-outlined">help</span>
+</button>
+</div>
+</header>
+<!-- Main Layout -->
+<main class="flex-1 flex flex-col lg:flex-row h-[calc(100vh-64px)] overflow-hidden bg-leather-texture relative">
+<!-- Background Decor: Subtle gradient overlay for vignette -->
+<div class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.6)_100%)] z-0"></div>
+<!-- Left Column: Navigation Index -->
+<nav class="lg:w-64 border-r border-[#392f28] bg-[#1a1612]/90 backdrop-blur-sm z-10 flex flex-col p-6 shadow-[4px_0_24px_rgba(0,0,0,0.5)]">
+<div class="mb-8">
+<h1 class="text-[#baa89c] text-sm uppercase tracking-widest font-bold mb-1 opacity-70">Grimorio del Jugador</h1>
+<h2 class="text-white text-2xl font-bold leading-tight">Creación</h2>
+</div>
+<ul class="flex flex-col gap-2 space-y-2">
+<li class="group flex items-center gap-3 px-3 py-2 opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
+<span class="material-symbols-outlined text-lg">face</span>
+<span class="text-lg">Raza</span>
+</li>
+<li class="group flex items-center gap-3 px-3 py-2 opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
+<span class="material-symbols-outlined text-lg">school</span>
+<span class="text-lg">Clase</span>
+</li>
+<!-- Active Item -->
+<li class="relative flex items-center gap-3 px-4 py-3 rounded bg-gradient-to-r from-primary/20 to-transparent border-l-4 border-primary shadow-glow-ember">
+<span class="material-symbols-outlined text-primary text-glow-ember">casino</span>
+<span class="text-xl font-bold text-white text-glow-ember">Atributos</span>
+</li>
+<li class="group flex items-center gap-3 px-3 py-2 opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
+<span class="material-symbols-outlined text-lg">history_edu</span>
+<span class="text-lg">Trasfondo</span>
+</li>
+<li class="group flex items-center gap-3 px-3 py-2 opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
+<span class="material-symbols-outlined text-lg">backpack</span>
+<span class="text-lg">Equipo</span>
+</li>
+</ul>
+<div class="mt-auto pt-6 border-t border-[#392f28] text-center">
+<p class="text-[#baa89c] text-xs italic">"El destino se forja en la piedra de la voluntad."</p>
+</div>
+</nav>
+<!-- Middle Column: Character Bust (The Mirror) -->
+<section class="flex-1 relative flex flex-col items-center justify-center p-8 lg:p-12 overflow-hidden z-0">
+<!-- Decorative Frame behind character -->
+<div class="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none">
+<div class="w-[500px] h-[500px] rounded-full border border-[#54453b] scale-150"></div>
+<div class="absolute w-[400px] h-[400px] rounded-full border border-[#54453b] border-dashed animate-[spin_60s_linear_infinite]"></div>
+</div>
+<div class="relative w-full max-w-md aspect-[3/4] rounded-t-full rounded-b-lg border-2 border-[#54453b] bg-[#110e0c] shadow-2xl overflow-hidden group">
+<!-- Character Image -->
+<div class="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-700 group-hover:scale-105" data-alt="Dark fantasy portrait of a mysterious cloaked figure in a dimly lit library, glowing eyes" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBvBx3KzHdxJy7R0m-0QV0x6OmzPWhWyFnshHavaU21oz0T0OqXYKiP9eLIQFb348nPNjDCJJOQAXsNq5MjTuZ6dTO7gyXj9MAbMbigjEb7D6Y2xFVY7gCi_k5HQXFEHeki6t9auFgEaS58FUSaqWkklZpn5MH2p_OnUedGLw0qyEqU7JISul5uS3vXFQ2cwLkIikEkUxdxlhz6NxKJ1o9-3IxaJWd6r-nshUEupItJaDjpIl0o95DJo_9c47E3EdRCoa07qVIeKg');"></div>
+<!-- Magic Overlay Effects (Reacting to high stats - mocked here) -->
+<div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80"></div>
+<!-- Glowing Eyes Effect (Mockup for High INT) -->
+<div class="absolute top-[35%] left-1/2 -translate-x-1/2 w-32 h-10 flex justify-between px-6 opacity-60 mix-blend-screen pointer-events-none">
+<div class="w-3 h-3 rounded-full bg-blue-400 blur-sm shadow-[0_0_15px_#60a5fa]"></div>
+<div class="w-3 h-3 rounded-full bg-blue-400 blur-sm shadow-[0_0_15px_#60a5fa]"></div>
+</div>
+<!-- Nameplate -->
+<div class="absolute bottom-0 w-full bg-gradient-to-t from-[#0f0c0a] to-transparent pt-20 pb-6 px-6 text-center">
+<h2 class="text-2xl font-bold text-white tracking-wide drop-shadow-md">Malakai, El Erudito</h2>
+<p class="text-[#baa89c] text-sm font-serif italic">Mago Tiefling • Nivel 1</p>
+</div>
+</div>
+</section>
+<!-- Right Column: Attribute Grid (The Tablet) -->
+<aside class="lg:w-[480px] bg-[#1c1815] border-l border-[#392f28] flex flex-col z-10 shadow-[-4px_0_24px_rgba(0,0,0,0.5)] overflow-y-auto">
+<div class="p-6 lg:p-8 flex flex-col gap-6 h-full">
+<header class="flex items-center justify-between pb-4 border-b border-[#392f28]">
+<div>
+<h2 class="text-3xl font-bold text-white tracking-tight">Distribución</h2>
+<p class="text-[#baa89c] text-sm">Define tus capacidades físicas y mentales.</p>
+</div>
+</header>
+<!-- Points Pool -->
+<div class="stone-surface rounded-lg p-4 flex items-center justify-between border-t border-t-[#54453b]/50 shadow-[0_4px_12px_rgba(0,0,0,0.3)] mb-2 relative overflow-hidden">
+<div class="absolute top-0 right-0 p-10 bg-crimson/10 blur-3xl rounded-full pointer-events-none"></div>
+<div>
+<span class="block text-[#baa89c] text-xs uppercase tracking-widest font-bold">Puntos Restantes</span>
+<div class="flex items-baseline gap-2">
+<span class="text-4xl font-bold text-crimson crimson-pulse">05</span>
+<span class="text-xs text-crimson/80 italic">Límite estándar</span>
+</div>
+</div>
+<div class="size-12 rounded-full border-2 border-crimson/30 flex items-center justify-center bg-black/40 shadow-[0_0_15px_rgba(220,38,38,0.2)]">
+<span class="material-symbols-outlined text-crimson animate-pulse">bolt</span>
+</div>
+</div>
+<!-- Attributes Grid (Bento Box) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+<!-- Single Attribute Module: Strength -->
+<div class="stone-surface rounded p-4 flex flex-col gap-3 group hover:border-primary/50 transition-colors">
+<div class="flex justify-between items-start">
+<span class="text-[#baa89c] font-bold text-sm tracking-wide">FUERZA</span>
+<span class="material-symbols-outlined text-[#54453b] group-hover:text-primary transition-colors text-lg">fitness_center</span>
+</div>
+<div class="flex items-center justify-between bg-black/20 rounded p-1 shadow-inset-stone">
+<button class="btn-rune size-8 flex items-center justify-center rounded bg-[#27201b] border border-[#392f28] hover:border-rune-blue/50 text-[#54453b] hover:text-rune-blue transition-all">
+<span class="material-symbols-outlined text-sm">remove</span>
+</button>
+<span class="text-2xl font-bold text-white">08</span>
+<button class="btn-rune size-8 flex items-center justify-center rounded bg-[#27201b] border border-[#392f28] hover:border-rune-blue/50 text-[#54453b] hover:text-rune-blue transition-all">
+<span class="material-symbols-outlined text-sm">add</span>
+</button>
+</div>
+</div>
+<!-- Single Attribute Module: Dexterity -->
+<div class="stone-surface rounded p-4 flex flex-col gap-3 group hover:border-primary/50 transition-colors">
+<div class="flex justify-between items-start">
+<span class="text-[#baa89c] font-bold text-sm tracking-wide">DESTREZA</span>
+<span class="material-symbols-outlined text-[#54453b] group-hover:text-primary transition-colors text-lg">sprint</span>
+</div>
+<div class="flex items-center justify-between bg-black/20 rounded p-1 shadow-inset-stone">
+<button class="btn-rune size-8 flex items-center justify-center rounded bg-[#27201b] border border-[#392f28] hover:border-rune-blue/50 text-[#54453b] hover:text-rune-blue transition-all">
+<span class="material-symbols-outlined text-sm">remove</span>
+</button>
+<span class="text-2xl font-bold text-white">12</span>
+<button class="btn-rune size-8 flex items-center justify-center rounded bg-[#27201b] border border-[#392f28] hover:border-rune-blue/50 text-[#54453b] hover:text-rune-blue transition-all">
+<span class="material-symbols-outlined text-sm">add</span>
+</button>
+</div>
+</div>
+<!-- Single Attribute Module: Constitution -->
+<div class="stone-surface rounded p-4 flex flex-col gap-3 group hover:border-primary/50 transition-colors">
+<div class="flex justify-between items-start">
+<span class="text-[#baa89c] font-bold text-sm tracking-wide">CONST.</span>
+<span class="material-symbols-outlined text-[#54453b] group-hover:text-primary transition-colors text-lg">shield</span>
+</div>
+<div class="flex items-center justify-between bg-black/20 rounded p-1 shadow-inset-stone">
+<button class="btn-rune size-8 flex items-center justify-center rounded bg-[#27201b] border border-[#392f28] hover:border-rune-blue/50 text-[#54453b] hover:text-rune-blue transition-all">
+<span class="material-symbols-outlined text-sm">remove</span>
+</button>
+<span class="text-2xl font-bold text-white">13</span>
+<button class="btn-rune size-8 flex items-center justify-center rounded bg-[#27201b] border border-[#392f28] hover:border-rune-blue/50 text-[#54453b] hover:text-rune-blue transition-all">
+<span class="material-symbols-outlined text-sm">add</span>
+</button>
+</div>
+</div>
+<!-- Single Attribute Module: Intelligence (Highlighted) -->
+<div class="stone-surface rounded p-4 flex flex-col gap-3 border-rune-blue/40 shadow-glow-rune relative overflow-hidden group">
+<div class="absolute inset-0 bg-rune-blue/5 pointer-events-none"></div>
+<div class="flex justify-between items-start relative z-10">
+<span class="text-rune-blue font-bold text-sm tracking-wide text-glow-rune">INTELIGENCIA</span>
+<span class="material-symbols-outlined text-rune-blue text-lg text-glow-rune">auto_stories</span>
+</div>
+<div class="flex items-center justify-between bg-black/30 rounded p-1 shadow-inset-stone relative z-10">
+<button class="btn-rune size-8 flex items-center justify-center rounded bg-[#27201b] border border-[#392f28] hover:border-rune-blue/50 text-[#54453b] hover:text-rune-blue transition-all">
+<span class="material-symbols-outlined text-sm">remove</span>
+</button>
+<span class="text-2xl font-bold text-white text-glow-rune">17</span>
+<button class="btn-rune size-8 flex items-center justify-center rounded bg-[#27201b] border border-[#392f28] hover:border-rune-blue/50 text-[#54453b] hover:text-rune-blue transition-all">
+<span class="material-symbols-outlined text-sm">add</span>
+</button>
+</div>
+</div>
+<!-- Single Attribute Module: Wisdom -->
+<div class="stone-surface rounded p-4 flex flex-col gap-3 group hover:border-primary/50 transition-colors">
+<div class="flex justify-between items-start">
+<span class="text-[#baa89c] font-bold text-sm tracking-wide">SABIDURÍA</span>
+<span class="material-symbols-outlined text-[#54453b] group-hover:text-primary transition-colors text-lg">visibility</span>
+</div>
+<div class="flex items-center justify-between bg-black/20 rounded p-1 shadow-inset-stone">
+<button class="btn-rune size-8 flex items-center justify-center rounded bg-[#27201b] border border-[#392f28] hover:border-rune-blue/50 text-[#54453b] hover:text-rune-blue transition-all">
+<span class="material-symbols-outlined text-sm">remove</span>
+</button>
+<span class="text-2xl font-bold text-white">10</span>
+<button class="btn-rune size-8 flex items-center justify-center rounded bg-[#27201b] border border-[#392f28] hover:border-rune-blue/50 text-[#54453b] hover:text-rune-blue transition-all">
+<span class="material-symbols-outlined text-sm">add</span>
+</button>
+</div>
+</div>
+<!-- Single Attribute Module: Charisma -->
+<div class="stone-surface rounded p-4 flex flex-col gap-3 group hover:border-primary/50 transition-colors">
+<div class="flex justify-between items-start">
+<span class="text-[#baa89c] font-bold text-sm tracking-wide">CARISMA</span>
+<span class="material-symbols-outlined text-[#54453b] group-hover:text-primary transition-colors text-lg">theater_comedy</span>
+</div>
+<div class="flex items-center justify-between bg-black/20 rounded p-1 shadow-inset-stone">
+<button class="btn-rune size-8 flex items-center justify-center rounded bg-[#27201b] border border-[#392f28] hover:border-rune-blue/50 text-[#54453b] hover:text-rune-blue transition-all">
+<span class="material-symbols-outlined text-sm">remove</span>
+</button>
+<span class="text-2xl font-bold text-white">14</span>
+<button class="btn-rune size-8 flex items-center justify-center rounded bg-[#27201b] border border-[#392f28] hover:border-rune-blue/50 text-[#54453b] hover:text-rune-blue transition-all">
+<span class="material-symbols-outlined text-sm">add</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Lore Panel (The Scroll) -->
+<div class="mt-auto bg-[#2a231d] border border-[#392f28] rounded p-5 relative shadow-lg">
+<!-- Parchment Texture Overlay -->
+<div class="absolute inset-0 opacity-10 rounded pointer-events-none" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA9YnkCwJSjRvGFDSdyufPEBbAImA9HwByJX2I4IXxrqKErKzag6eIPT9d0SmxDM6GS6I2QeAFSnWi5e414nwpAU9OBny4ogGsHzU7tFkFjNR1Y4uvcXq3vN1yPRv837-RYJlIhSzYp6y9sImaZh6GpD1dQAxEM0XtrM67l2uKMyEo386ALeqjUrOvz1RNYGIY9cbzd7hUkcjrEwXCClf9Z-geN9ENa_BFKbNXNZoYoCTlsvzLdM5KR-vZU0_3lrl4B745f4f7HjA');"></div>
+<div class="relative z-10">
+<div class="flex items-center gap-2 mb-2 text-[#baa89c]">
+<span class="material-symbols-outlined text-sm">info</span>
+<span class="text-xs uppercase font-bold tracking-widest">Compendio Arcano</span>
+</div>
+<p class="text-white text-sm leading-relaxed font-serif">
+<strong class="text-rune-blue text-glow-rune">Inteligencia:</strong> Mide la agudeza mental, la exactitud de los recuerdos y la capacidad de razonar. Es crucial para los Magos, pues determina cuántos hechizos pueden memorizar y la potencia de su magia arcana.
+                        </p>
+</div>
+</div>
+<!-- Action Button -->
+<button class="w-full py-4 mt-2 bg-gradient-to-r from-primary to-orange-600 hover:from-orange-500 hover:to-orange-400 text-white font-bold text-lg rounded shadow-lg transition-all active:scale-[0.99] border-t border-white/20">
+                    Confirmar Atributos
+                </button>
+</div>
+</aside>
+</main>
+</body></html>

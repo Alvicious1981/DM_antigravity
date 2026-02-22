@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Body
 from typing import List, Dict
 import uuid
 import json
-import random
+from ..dice import roll
 from datetime import datetime
 
 from ..db import get_db
@@ -22,12 +22,12 @@ async def new_game(request: CharacterCreationRequest):
     stats = request.stats
     if not stats:
         stats = {
-            "str": sum([random.randint(1, 6) for _ in range(3)]),
-            "dex": sum([random.randint(1, 6) for _ in range(3)]),
-            "con": sum([random.randint(1, 6) for _ in range(3)]),
-            "int": sum([random.randint(1, 6) for _ in range(3)]),
-            "wis": sum([random.randint(1, 6) for _ in range(3)]),
-            "cha": sum([random.randint(1, 6) for _ in range(3)]),
+            "str": roll(6, 3).total,
+            "dex": roll(6, 3).total,
+            "con": roll(6, 3).total,
+            "int": roll(6, 3).total,
+            "wis": roll(6, 3).total,
+            "cha": roll(6, 3).total,
         }
     
     # 2. Determine HP/AC based on Class (Simplified for prototype)

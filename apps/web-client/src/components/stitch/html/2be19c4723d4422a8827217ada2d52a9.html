@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dragons and Dungeons - Gameplay HUD - Gilded Iron</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&amp;family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#b91c1c","primary-dark": "#7f1d1d",
+                        "leather-dark": "#1a1110",
+                        "leather": "#2d1b19",
+                        "silver": "#c0c0c0",
+                        "silver-dark": "#757575",
+                        "gold": "#d4af37",
+                        "gold-dim": "#8a7e57",
+                        "basalt": "#1c1c1c",
+                        "magma": "#ff4500",
+                    },
+                    fontFamily: {
+                        "display": ["Cinzel", "serif"],
+                        "body": ["Newsreader", "serif"],
+                    },
+                    backgroundImage: {
+                        'leather-texture': "linear-gradient(to bottom, rgba(0,0,0,0.6), rgba(0,0,0,0.4)), url('https://www.transparenttextures.com/patterns/black-scales.png')",
+                        'basalt-texture': "linear-gradient(to bottom, rgba(20,20,20,0.9), rgba(20,20,20,0.95)), url('https://www.transparenttextures.com/patterns/asfalt-dark.png')",
+                        'silver-plate': "linear-gradient(to bottom, #e3e3e3 0%, #a8a8a8 50%, #6e6e6e 100%)",
+                        'parchment-scroll': "url('https://www.transparenttextures.com/patterns/aged-paper.png')",
+                        'magma-glow': "radial-gradient(circle at center, #ffaa00, #ff4500, #8b0000)",
+                    },
+                    boxShadow: {
+                        'ember': '0 0 15px rgba(255, 69, 0, 0.3), inset 0 0 20px rgba(255, 69, 0, 0.1)',
+                        'gold-glow': '0 0 10px rgba(212, 175, 55, 0.4)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>::-webkit-scrollbar {
+            width: 8px;
+            background: #0f0f0f;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a; 
+            border-left: 1px solid #333;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(to bottom, #5a4a42, #8a7e57);
+            border-radius: 4px;
+            border: 1px solid #2a2a2a;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(to bottom, #7a6a62, #aa9e77);
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }.text-engraved {
+            text-shadow: 0px 1px 0px rgba(255,255,255,0.4), 0px -1px 0px rgba(0,0,0,0.8);
+        }
+        .text-gold-glow {
+            text-shadow: 0 0 5px rgba(212, 175, 55, 0.6);
+        }.scroll-edges {
+            position: relative;
+        }
+        .scroll-edges::before, .scroll-edges::after {
+            content: '';
+            position: absolute;
+            left: 0; 
+            right: 0;
+            height: 40px;
+            z-index: 20;
+            pointer-events: none;
+        }
+        .scroll-edges::before {
+            top: 0;
+            background: linear-gradient(to bottom, #eaddcf 0%, transparent 100%);
+            mask-image: linear-gradient(to bottom, black, transparent);
+        }.filigree-border-x {
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-image: url("data:image/svg+xml,%3Csvg width='30' height='30' viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h30v30H0z' fill='none'/%3E%3Cpath d='M2 2h26v26H2z' fill='none' stroke='%23d4af37' stroke-width='2'/%3E%3C/svg%3E") 30 stretch;
+        }@keyframes pulse-magma {
+            0% { box-shadow: 0 0 10px #ff4500; }
+            50% { box-shadow: 0 0 20px #ff8c00; }
+            100% { box-shadow: 0 0 10px #ff4500; }
+        }
+        .magma-pulse {
+            animation: pulse-magma 3s infinite;
+        }.ember-border {
+            box-shadow: inset 0 0 50px rgba(185, 28, 28, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-leather-dark bg-leather-texture font-body text-slate-200 h-screen w-full flex flex-col overflow-hidden border-[6px] border-[#2d1b19] ember-border">
+<header class="z-50 h-20 shrink-0 bg-[#0f0a0a] border-b-4 border-[#4a3b32] flex items-end justify-between px-8 relative shadow-2xl">
+<div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-leather.png')] opacity-50 z-0"></div>
+<div class="flex items-center gap-4 pb-4 self-center relative z-10">
+<div class="relative">
+<div class="absolute inset-0 bg-primary blur-md opacity-40 rounded-full"></div>
+<span class="material-symbols-outlined text-gold text-4xl drop-shadow-md">shield_with_house</span>
+</div>
+<div class="flex flex-col">
+<h1 class="text-2xl font-display font-bold tracking-widest text-[#e5e5e5] uppercase text-engraved">Dragons &amp; Dungeons</h1>
+<span class="text-[10px] text-primary font-bold tracking-[0.3em] uppercase">Gilded Edition</span>
+</div>
+</div>
+<nav class="flex h-12 items-end gap-1 relative z-10 translate-y-[2px]">
+<a class="group relative px-8 py-2 bg-gradient-to-b from-[#e8e8e8] to-[#999999] rounded-t-lg shadow-[0_-2px_5px_rgba(0,0,0,0.5)] border-x border-t border-[#666] transform scale-105 z-20" href="#">
+<div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/brushed-alum.png')] opacity-30 rounded-t-lg"></div>
+<div class="relative flex items-center gap-2 text-[#1a1a1a]">
+<span class="material-symbols-outlined text-lg">history_edu</span>
+<span class="font-display font-bold text-sm uppercase tracking-wider text-engraved">Historia</span>
+</div>
+<div class="absolute top-1 left-1 w-1.5 h-1.5 rounded-full bg-[#555] shadow-inner"></div>
+<div class="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-[#555] shadow-inner"></div>
+</a>
+<a class="group relative px-6 py-2 bg-gradient-to-b from-[#5a5a5a] to-[#2b2b2b] rounded-t-md hover:from-[#6a6a6a] hover:to-[#3b3b3b] transition-all border-x border-t border-[#1a1a1a] mt-2" href="#">
+<div class="relative flex items-center gap-2 text-[#a0a0a0] group-hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">badge</span>
+<span class="font-display font-bold text-xs uppercase tracking-wider">Personaje</span>
+</div>
+</a>
+<a class="group relative px-6 py-2 bg-gradient-to-b from-[#5a5a5a] to-[#2b2b2b] rounded-t-md hover:from-[#6a6a6a] hover:to-[#3b3b3b] transition-all border-x border-t border-[#1a1a1a] mt-2" href="#">
+<div class="relative flex items-center gap-2 text-[#a0a0a0] group-hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">auto_stories</span>
+<span class="font-display font-bold text-xs uppercase tracking-wider">Grimorio</span>
+</div>
+</a>
+<a class="group relative px-6 py-2 bg-gradient-to-b from-[#5a5a5a] to-[#2b2b2b] rounded-t-md hover:from-[#6a6a6a] hover:to-[#3b3b3b] transition-all border-x border-t border-[#1a1a1a] mt-2" href="#">
+<div class="relative flex items-center gap-2 text-[#a0a0a0] group-hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">backpack</span>
+<span class="font-display font-bold text-xs uppercase tracking-wider">Inventario</span>
+</div>
+</a>
+</nav>
+<div class="pb-4 self-center flex items-center gap-4 relative z-10">
+<div class="flex flex-col items-end mr-2">
+<span class="text-gold text-xs font-bold uppercase tracking-widest font-display">Nvl 4 Paladin</span>
+<span class="text-white text-sm font-medium tracking-wide">Sir Gideon</span>
+</div>
+<div class="size-12 rounded-full border-[3px] border-gold shadow-[0_0_10px_rgba(212,175,55,0.3)] bg-cover bg-center relative" data-alt="Portrait of a fantasy paladin character" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDbdpnp_vrn5zrQ69ESnGCZbZPz8MK0kt5GXcB9TjYkOjaZEUV_9gGZ7ddlGgDW71wVlYhvusjh2PoFzlqUmRT7btCSALLXjhgxxchMew8lupopBFOdH5d8rDLnaTKjebvUeTbVXB9grXSJJOw21CXoKQp5kodLe_sP5XaIvIyyfTJQISMzGV1_aDYr7ONv-L-A6tAMaLWlRbJ13l2o24XKJNyS3jrjnns0U14Tuz-6g-JAimNPft3i4_jAFHmdHkxmz5kmVSrkRA');">
+<div class="absolute -bottom-1 -right-1 bg-primary text-[10px] font-bold text-white px-1.5 py-0.5 rounded border border-primary-dark">HP</div>
+</div>
+</div>
+</header>
+<main class="flex flex-1 overflow-hidden relative">
+<div class="absolute top-10 left-10 w-1 h-1 bg-orange-500 rounded-full blur-[1px] opacity-60 animate-pulse pointer-events-none"></div>
+<div class="absolute bottom-20 right-1/4 w-1.5 h-1.5 bg-red-500 rounded-full blur-[1px] opacity-40 animate-pulse pointer-events-none"></div>
+<section class="flex flex-col w-4/5 h-full relative border-r-8 border-[#1a1110] shadow-[10px_0_20px_rgba(0,0,0,0.5)] z-10">
+<div class="absolute inset-2 top-0 bottom-0 bg-[#eaddcf] bg-parchment-scroll z-0 overflow-hidden shadow-inner border-x-[12px] border-double border-[#d4af37]">
+<div class="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-[#cbbfae] to-transparent z-10"></div>
+<div class="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#cbbfae] to-transparent z-10"></div>
+</div>
+<div class="relative z-10 flex-1 overflow-y-auto px-20 py-12 scroll-smooth">
+<div class="max-w-4xl mx-auto flex flex-col gap-10 pb-32">
+<div class="flex items-center justify-center gap-4 opacity-70">
+<div class="h-px w-16 bg-[#5c4d3c]"></div>
+<span class="text-[#5c4d3c] font-display text-sm font-bold uppercase tracking-[0.2em]">Day 14, 10:42 AM</span>
+<div class="h-px w-16 bg-[#5c4d3c]"></div>
+</div>
+<div class="prose prose-xl prose-p:text-[#2c1810] prose-headings:text-[#1a0f0a] font-body">
+<p class="first-letter:text-6xl first-letter:float-left first-letter:mr-3 first-letter:font-display first-letter:font-bold first-letter:text-[#8a0b20] leading-loose text-xl drop-shadow-sm">
+                            You stand before the ancient gates of the Sunken Citadel. The massive iron doors, slick with the moisture of the deep caves, loom overhead. The air is thick with the metallic tang of ozone and the sickly sweet smell of decay. A low, guttural growl echoes from within the shadows, vibrating through the stone floor beneath your boots.
+                        </p>
+</div>
+<div class="flex gap-5 p-6 bg-[#d8cbb8]/40 rounded-sm border-l-4 border-[#8a0b20] shadow-sm backdrop-blur-[1px]">
+<div class="size-14 min-w-[3.5rem] rounded-full bg-cover bg-center border-2 border-[#8a7e57] shadow-md grayscale-[0.2] sepia-[0.3]" data-alt="Portrait of the Game Master or narrator" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDr0doBlezGMcprtKWhrR2erytnpGie6q6r0tRmfBIMsapRZyJqjEQjXRbQjBjfdlzrHuMj3MR313tx2Ei631xiWmKR2_j3EZGNSDRpoZrPKa9k7X2hzBFCceEeb7TL9WCP0O3cdicfLrfl5nu2R8llvj0ve6dRv1UsM3R1P_DNaT5ehephlUnVdZBSv0ix69bjueZHLsWRgyjNyK-ZzLHAiI0kgKNaoKLpDkvLp0SF2CdT3DcfG0eJ-3jXbN8WFAJTGhyS72zRAg');"></div>
+<div class="flex flex-col gap-2">
+<span class="text-[#5a2e2e] font-display font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                                Game Master
+                            </span>
+<p class="text-[#2c1810] italic text-xl font-serif">"The shadows shift. Roll for initiative. The goblin archers have spotted you from the upper ledge."</p>
+</div>
+</div>
+<div class="flex flex-col gap-3 bg-red-50/50 p-4 border border-red-900/10 rounded">
+<div class="flex justify-between items-baseline border-b border-red-900/20 pb-2">
+<h3 class="text-[#8a0b20] font-display font-bold text-xl uppercase tracking-wide">Combat Initiated</h3>
+<span class="bg-[#8a0b20] text-[#eaddcf] px-2 py-0.5 text-xs font-bold rounded-sm tracking-widest">ROUND 1</span>
+</div>
+<p class="text-[#3d2b25] text-lg leading-relaxed">
+<span class="font-bold">Goblin Archer</span> shoots a jagged arrow.
+                            <br/>
+<span class="text-[#b91c1c] font-bold">Hit!</span> (18 vs AC 16). You take <span class="font-bold text-[#b91c1c] text-xl">6</span> piercing damage.
+                        </p>
+</div>
+<div class="self-end max-w-[85%] bg-white/60 p-6 rounded-tr-xl rounded-tl-xl rounded-bl-xl border border-[#d4af37]/30 shadow-md transform rotate-1">
+<p class="text-[#8a7e57] text-xs font-bold uppercase mb-2 tracking-widest">You chose</p>
+<p class="text-[#1a0f0a] text-xl font-medium font-display">"I raise my shield and charge towards the stairs!"</p>
+</div>
+<div class="prose prose-xl prose-p:text-[#2c1810] font-body">
+<p class="leading-loose text-xl">
+                            Your boots slam against the wet stone as you surge forward. The arrow glances off your pauldrons with a spark. The goblins screech in alarm, scrambling to reload. You are now at the base of the crumbling staircase.
+                        </p>
+</div>
+</div>
+</div>
+<div class="relative z-20 shrink-0 bg-[#1c1c1c] border-t-[6px] border-[#4a3b32] p-8 shadow-[0_-10px_50px_rgba(0,0,0,0.8)] bg-basalt-texture">
+<div class="absolute -top-3 left-1/2 -translate-x-1/2 w-32 h-6 bg-[#2d1b19] border border-[#d4af37] rounded-full flex justify-center items-center z-30">
+<div class="w-2 h-2 rotate-45 bg-[#d4af37]"></div>
+</div>
+<div class="max-w-4xl mx-auto flex gap-6 items-stretch h-20">
+<div class="flex-1 relative group">
+<div class="absolute inset-0 bg-[#0a0a0a] rounded border-2 border-[#3d2b25] group-focus-within:border-[#d4af37] group-focus-within:shadow-[0_0_15px_rgba(212,175,55,0.2)] transition-all duration-300"></div>
+<input class="relative w-full h-full bg-transparent border-none text-2xl text-[#eaddcf] placeholder-[#5c4d3c] focus:ring-0 px-8 font-body italic" placeholder="Describe your action..." type="text"/>
+</div>
+<button class="relative w-24 shrink-0 group perspective-1000">
+<div class="absolute inset-0 bg-magma-glow rounded-xl transform transition-transform group-hover:translate-y-[-4px] group-active:translate-y-[2px] shadow-[0_0_20px_rgba(255,69,0,0.6)] border-2 border-[#ffaa00] flex items-center justify-center overflow-hidden magma-pulse">
+<div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cracked-ground.png')] opacity-60 mix-blend-multiply"></div>
+<svg class="w-12 h-12 text-[#fff5e6] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] relative z-10" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+<path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 7l10 5 10-5M2 7v10l10 5 10-5V7"></path>
+<path d="M12 22V12"></path>
+</svg>
+</div>
+</button>
+</div>
+<div class="max-w-4xl mx-auto mt-3 flex justify-between text-xs text-[#8a7e57] uppercase tracking-[0.2em] font-bold font-display">
+<span>Free Action Mode</span>
+<span>Press Enter to roll</span>
+</div>
+</div>
+</section>
+<aside class="w-1/5 bg-[#1c1c1c] flex flex-col border-l border-[#2d1b19] bg-basalt-texture relative shadow-[inset_15px_0_30px_rgba(0,0,0,0.7)] z-20">
+<div class="p-6 border-b-2 border-[#333] bg-gradient-to-r from-[#141414] to-transparent sticky top-0 z-10 backdrop-blur-md">
+<h2 class="text-[#e5e5e5] text-sm font-display font-bold uppercase tracking-[0.2em] flex items-center gap-2 mb-2 text-gold-glow">
+<span class="material-symbols-outlined text-gold text-lg">bolt</span>
+                    Actions
+                </h2>
+<div class="h-0.5 w-full bg-gradient-to-r from-gold via-transparent to-transparent opacity-50"></div>
+</div>
+<div class="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+<button class="group flex flex-col gap-2 w-full p-0 bg-[#242424] border border-[#3a3a3a] rounded-sm hover:border-primary hover:shadow-[0_0_15px_rgba(185,28,28,0.3)] transition-all text-left relative overflow-hidden">
+<div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20"></div>
+<div class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#8a0b20] group-hover:bg-primary h-full transition-all box-shadow-[0_0_10px_#ff0000]"></div>
+<div class="p-4 relative z-10">
+<div class="flex justify-between items-start w-full mb-1">
+<span class="text-slate-200 font-bold text-lg leading-tight font-display tracking-wide group-hover:text-white">Atacar al orco</span>
+</div>
+<span class="inline-block text-[10px] bg-[#3a0a0a] text-red-400 border border-red-900 px-1.5 py-0.5 rounded uppercase tracking-wider mb-3">Combat</span>
+<div class="flex items-center gap-2 text-gray-400 text-sm group-hover:text-gray-300">
+<span class="material-symbols-outlined text-base">swords</span>
+<span class="italic">Longsword +5</span>
+</div>
+<div class="mt-3 pt-2 border-t border-[#333] flex justify-between items-center">
+<span class="text-xs text-red-500 font-bold group-hover:text-red-400 transition-colors">1d8 + 3 Slashing</span>
+</div>
+</div>
+</button>
+<button class="group flex flex-col gap-2 w-full p-0 bg-[#242424] border border-[#3a3a3a] rounded-sm hover:border-gold hover:shadow-[0_0_15px_rgba(212,175,55,0.2)] transition-all text-left relative overflow-hidden">
+<div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20"></div>
+<div class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#8a7e57] group-hover:bg-gold h-full transition-all"></div>
+<div class="p-4 relative z-10">
+<div class="flex justify-between items-start w-full mb-1">
+<span class="text-slate-200 font-bold text-lg leading-tight font-display tracking-wide group-hover:text-white">Inspeccionar</span>
+</div>
+<span class="inline-block text-[10px] bg-[#2a1a0a] text-amber-400 border border-amber-900 px-1.5 py-0.5 rounded uppercase tracking-wider mb-3">Investigación</span>
+<div class="flex items-center gap-2 text-gray-400 text-sm group-hover:text-gray-300">
+<span class="material-symbols-outlined text-base">search</span>
+<span class="italic">Search for traps</span>
+</div>
+</div>
+</button>
+<button class="group flex flex-col gap-2 w-full p-0 bg-[#242424] border border-[#3a3a3a] rounded-sm hover:border-blue-500 hover:shadow-[0_0_15px_rgba(59,130,246,0.2)] transition-all text-left relative overflow-hidden opacity-90 hover:opacity-100">
+<div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20"></div>
+<div class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#1e3a8a] group-hover:bg-blue-600 h-full transition-all"></div>
+<div class="p-4 relative z-10">
+<div class="flex justify-between items-start w-full mb-1">
+<span class="text-slate-200 font-bold text-lg leading-tight font-display tracking-wide group-hover:text-white">Persuasión</span>
+</div>
+<span class="inline-block text-[10px] bg-[#0a1a3a] text-blue-400 border border-blue-900 px-1.5 py-0.5 rounded uppercase tracking-wider mb-3">Charisma</span>
+<div class="flex items-center gap-2 text-gray-400 text-sm group-hover:text-gray-300">
+<span class="material-symbols-outlined text-base">record_voice_over</span>
+<span class="italic">Try to parley</span>
+</div>
+</div>
+</button>
+</div>
+<div class="p-4 bg-[#141414] border-t-2 border-[#333] grid grid-cols-2 gap-3 text-center">
+<div class="flex flex-col bg-[#2d1b19] p-2 rounded border border-[#8a0b20]/30 shadow-inner">
+<span class="text-[10px] text-[#e5e5e5] uppercase tracking-widest font-bold mb-1">Hit Points</span>
+<span class="text-primary font-display font-bold text-xl drop-shadow-sm">42 / 58</span>
+</div>
+<div class="flex flex-col bg-[#1a1a1a] p-2 rounded border border-[#333] shadow-inner">
+<span class="text-[10px] text-[#e5e5e5] uppercase tracking-widest font-bold mb-1">Spell Slots</span>
+<span class="text-blue-400 font-display font-bold text-xl drop-shadow-sm">3 / 4</span>
+</div>
+</div>
+</aside>
+</main>
+
+</body></html>

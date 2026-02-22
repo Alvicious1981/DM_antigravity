@@ -1,4 +1,4 @@
-import { GameState, AgUiEvent, NarrativeChunk, StatePatch, ShowWidget, SpellBookUpdate, DiceResult, InitiativeUpdate, InventoryUpdate, LogEvent, MapDataEvent } from "./useAgentState";
+import { GameState, AgUiEvent, NarrativeChunk, NarrativeEvent, StatePatch, ShowWidget, SpellBookUpdate, DiceResult, InitiativeUpdate, InventoryUpdate, LogEvent, MapDataEvent, MonsterSearchEvent } from "./useAgentState";
 import { asCombatantId } from "../domain/types";
 import { spawnFloatingText } from "../components/FloatingTextLayer";
 
@@ -33,6 +33,30 @@ const narrativeChunkHandler: MessageHandler = (data: NarrativeChunk, bufferRef) 
             currentNarrative: "",
             isStreaming: false,
         };
+    };
+};
+
+const narrativeEventHandler: MessageHandler = (data: NarrativeEvent) => (prev) => {
+    // Arrival and Encounter logic (§ Phase 7.1 & 7.3)
+    const newToasts = [...prev.toasts];
+    const nodeId = data.metadata?.node_id as string;
+    const nodeName = data.metadata?.node_name as string;
+    const isNewNode = nodeId && !prev.visitedNodeIds.includes(nodeId);
+
+    if (isNewNode) {
+        newToasts.push({
+            type: "LOG",
+            message: `New Discovery: ${nodeName || "Unknown Location"}`,
+            level: "info",
+        });
+    }
+
+    return {
+        ...prev,
+        toasts: newToasts,
+        visitedNodeIds: isNewNode ? [...prev.visitedNodeIds, nodeId] : prev.visitedNodeIds,
+        // We additive to narrative for structured events that don't stream
+        narrative: data.event_type !== "travel" ? [...prev.narrative, data.content] : prev.narrative,
     };
 };
 
@@ -154,6 +178,26 @@ const logHandler: MessageHandler = (data: LogEvent) => (prev) => ({
     toasts: [...prev.toasts, data]
 });
 
+const lootDistributedHandler: MessageHandler = (data: any) => (prev) => ({
+    ...prev,
+    toasts: [...prev.toasts, { type: "LOG", message: data.message || "Loot received!", level: "info" } as LogEvent],
+});
+
+const monsterSearchResultsHandler: MessageHandler = (data: MonsterSearchEvent) => (prev) => ({
+    ...prev,
+    monsterSearchResults: data.results,
+});
+
+const ackHandler: MessageHandler = (data: any) => (prev) => {
+    if (data.status === "error") {
+        return {
+            ...prev,
+            toasts: [...prev.toasts, { type: "LOG", message: data.message, level: "error" } as LogEvent],
+        };
+    }
+    return prev;
+};
+
 const handlers: Record<string, MessageHandler> = {
     CONNECTION_ESTABLISHED: connectionEstablishedHandler,
     NARRATIVE_CHUNK: narrativeChunkHandler,
@@ -167,6 +211,10 @@ const handlers: Record<string, MessageHandler> = {
     MAP_DATA: mapDataHandler,
     SAVE_LIST: saveListHandler,
     LOG: logHandler,
+    NARRATIVE_EVENT: narrativeEventHandler,
+    LOOT_DISTRIBUTED: lootDistributedHandler,
+    MONSTER_SEARCH_RESULTS: monsterSearchResultsHandler,
+    ACK: ackHandler,
 };
 
 export function dispatchMessage(

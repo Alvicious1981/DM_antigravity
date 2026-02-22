@@ -1,3 +1,4 @@
+import asyncio
 from .initiative import InitiativeTracker, Combatant
 from .db import get_db
 import json
@@ -6,6 +7,9 @@ from dataclasses import asdict
 # Global Initiative Tracker (single session for now)
 # Global Initiative Tracker (single session for now)
 tracker = InitiativeTracker()
+
+# Asyncio lock for thread-safe tracker mutations
+tracker_lock = asyncio.Lock()
 
 # Track combatant positions: {character_id: cell_id (int) or node_id (str)}
 combatant_positions: dict[str, any] = {}
@@ -24,7 +28,7 @@ def save_game(save_id: str):
     db.execute("INSERT OR REPLACE INTO game_saves (save_id, data_json) VALUES (?, ?)", 
                (save_id, json.dumps(state)))
     db.commit()
-    print(f"💾 Game saved: {save_id}")
+    print(f"Game saved: {save_id}")
 
 def load_game(save_id: str) -> bool:
     """Load tracker state from DB."""
@@ -49,7 +53,7 @@ def load_game(save_id: str) -> bool:
     global combatant_positions
     combatant_positions = data.get("positions", {})
         
-    print(f"📂 Game loaded: {save_id}")
+    print(f"Game loaded: {save_id}")
     return True
 
 def list_saves() -> list[dict]:

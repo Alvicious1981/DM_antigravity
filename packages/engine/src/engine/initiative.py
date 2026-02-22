@@ -54,6 +54,7 @@ class InitiativeTracker:
     turn_index: int = 0
     combatants: List[Combatant] = field(default_factory=list)
     has_started: bool = False
+    active_widgets: List = field(default_factory=list)
 
     # ... (roll_initiative and add_combatant methods remain mostly same, just ensuring conditions init is correct)
 

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dragons and Dungeons - Character Selection</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;family=Noto+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec1337",
+                        "background-light": "#1a1616", 
+                        "background-dark": "#0f0a0a",
+                        "parchment": "#e3dccb",
+                        "parchment-dark": "#2a2620",
+                        "border-iron": "#39282b",
+                        "gold-accent": "#cfae70",
+                    },
+                    fontFamily: {
+                        "display": ["Newsreader", "serif"],
+                        "sans": ["Noto Sans", "sans-serif"],
+                    },
+                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+                    backgroundImage: {
+                        'worn-leather': "linear-gradient(to bottom, rgba(0,0,0,0.8), rgba(0,0,0,0.6))",
+                        'gold-gradient': "linear-gradient(to right, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c)",
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for the lore section */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1a1616;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #39282b;
+            border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #ec1337;
+        }
+        
+        .gold-text {
+            background: linear-gradient(to right, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+    </style>
+</head>
+<body class="bg-background-dark text-slate-100 font-display overflow-hidden h-screen flex flex-col">
+<!-- Header -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-border-iron px-8 py-4 bg-[#140e0f] z-20 shadow-lg">
+<div class="flex items-center gap-4 text-white">
+<div class="size-6 text-primary">
+<span class="material-symbols-outlined !text-[28px]">token</span>
+</div>
+<h2 class="text-white text-xl font-bold tracking-widest uppercase" style="letter-spacing: 0.15em;">Dragons &amp; Dungeons</h2>
+</div>
+<div class="flex items-center gap-6">
+<button class="text-gray-400 hover:text-white transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="h-8 w-px bg-border-iron"></div>
+<div class="flex items-center gap-3">
+<span class="text-sm text-gray-400 uppercase tracking-wider">Jugador:</span>
+<span class="text-white font-medium">LordVerx</span>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-1 flex overflow-hidden relative">
+<!-- Left Column: Navigation Stepper -->
+<aside class="w-64 flex flex-col border-r border-border-iron bg-[#140e0f] z-10 relative">
+<div class="p-6 flex flex-col gap-2 border-b border-border-iron">
+<h1 class="text-gold-accent text-sm font-bold uppercase tracking-widest opacity-80">Creación</h1>
+<p class="text-white text-lg font-medium">Nuevo Personaje</p>
+</div>
+<nav class="flex-1 py-8 px-4 flex flex-col gap-6">
+<!-- Step 1: Raza (Completed) -->
+<div class="group flex items-center gap-4 p-3 rounded hover:bg-white/5 transition-colors cursor-pointer opacity-60">
+<div class="flex items-center justify-center size-8 rounded-full border border-gray-600 text-gray-400">
+<span class="material-symbols-outlined !text-[18px]">check</span>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-bold uppercase tracking-wider text-gray-400">Raza</span>
+<span class="text-xs text-gray-500 font-sans">Elfo Oscuro</span>
+</div>
+</div>
+<!-- Step 2: Clase (Active) -->
+<div class="relative group flex items-center gap-4 p-3 rounded bg-primary/10 border border-primary/30 shadow-[0_0_15px_rgba(236,19,55,0.15)]">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-l shadow-[0_0_10px_#ec1337]"></div>
+<div class="flex items-center justify-center size-8 rounded-full bg-primary text-white shadow-lg shadow-primary/40">
+<span class="material-symbols-outlined !text-[18px]">swords</span>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-bold uppercase tracking-wider text-white">Clase</span>
+<span class="text-xs text-primary font-sans animate-pulse">Seleccionando...</span>
+</div>
+</div>
+<!-- Step 3: Trasfondo -->
+<div class="group flex items-center gap-4 p-3 rounded hover:bg-white/5 transition-colors cursor-pointer opacity-40 hover:opacity-70">
+<div class="flex items-center justify-center size-8 rounded-full border border-gray-700 text-gray-600">
+<span class="text-xs font-bold font-sans">3</span>
+</div>
+<span class="text-sm font-bold uppercase tracking-wider text-gray-500">Trasfondo</span>
+</div>
+<!-- Step 4: Atributos -->
+<div class="group flex items-center gap-4 p-3 rounded hover:bg-white/5 transition-colors cursor-pointer opacity-40 hover:opacity-70">
+<div class="flex items-center justify-center size-8 rounded-full border border-gray-700 text-gray-600">
+<span class="text-xs font-bold font-sans">4</span>
+</div>
+<span class="text-sm font-bold uppercase tracking-wider text-gray-500">Atributos</span>
+</div>
+<!-- Step 5: Resumen -->
+<div class="group flex items-center gap-4 p-3 rounded hover:bg-white/5 transition-colors cursor-pointer opacity-40 hover:opacity-70">
+<div class="flex items-center justify-center size-8 rounded-full border border-gray-700 text-gray-600">
+<span class="text-xs font-bold font-sans">5</span>
+</div>
+<span class="text-sm font-bold uppercase tracking-wider text-gray-500">Resumen</span>
+</div>
+</nav>
+<div class="p-6 border-t border-border-iron opacity-50">
+<div class="flex items-center gap-2 text-xs text-gray-500 font-sans">
+<span class="material-symbols-outlined !text-[14px]">info</span>
+<span>Progreso guardado</span>
+</div>
+</div>
+</aside>
+<!-- Middle Column: Visual Showcase -->
+<section class="flex-1 relative bg-black flex items-center justify-center overflow-hidden border-r border-border-iron group">
+<!-- Background glow effect behind character -->
+<div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black z-10 opacity-80"></div>
+<div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent z-0"></div>
+<!-- Character Image -->
+<div class="h-full w-full absolute inset-0 bg-contain bg-center bg-no-repeat transform scale-105 transition-transform duration-1000 ease-in-out group-hover:scale-110" data-alt="Dark fantasy necromancer character concept art full body standing in mist" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCmECiewZ5J1L_5T_0KpqFOPIW2WvExxPiVXg-m_7oPUhTvirbqygI-ixT_8w2-GO_qCiq7ycoXR6ld6jr6tDlYFo1JjwTWOSs8N2_KKm8W-NG-u7QxU0ffK9KXRf8Dugg41uf-ZjDjfhbNC_ikZDp6w9psxOrNB79_Lx2byZoaPGl8QnIbLRGhocAD1OnG1qP5jwqPD8bM6CKMFQN96PvShDWFzg-YyD9rcf37BboR9Aq28dCQFrO8rllZgjgj4UFkItIryx16xQ');">
+</div>
+<!-- Cinematic Text Overlay (Optional/Decorative) -->
+<div class="absolute bottom-20 left-0 right-0 text-center z-20 pointer-events-none">
+<h2 class="text-[120px] font-bold text-white/5 tracking-[0.2em] uppercase leading-none select-none">Necro</h2>
+</div>
+</section>
+<!-- Right Column: Bento Box Details -->
+<aside class="w-[480px] bg-[#181112] flex flex-col h-full overflow-y-auto custom-scrollbar relative">
+<div class="p-8 flex flex-col gap-6 pb-24">
+<!-- Module 1: Class Selector Carousel -->
+<div class="flex flex-col gap-4">
+<div class="flex items-center justify-between text-gray-400 text-xs font-bold tracking-widest uppercase">
+<span>Clase</span>
+<span>Dificultad: ★★★☆☆</span>
+</div>
+<div class="relative flex items-center justify-between bg-[#221013] border border-border-iron p-2 rounded-lg">
+<button class="p-2 hover:bg-white/5 rounded-full text-gray-400 hover:text-white transition-colors">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<div class="flex flex-col items-center gap-1">
+<h2 class="text-3xl font-bold gold-text tracking-wide uppercase drop-shadow-md">Necromante</h2>
+<span class="text-xs text-primary font-sans uppercase tracking-widest font-bold">Maestro de la Muerte</span>
+</div>
+<button class="p-2 hover:bg-white/5 rounded-full text-gray-400 hover:text-white transition-colors">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+<!-- Class Icons strip -->
+<div class="flex justify-center gap-2 py-2 overflow-x-auto no-scrollbar mask-gradient">
+<div class="size-10 flex items-center justify-center rounded border border-border-iron bg-[#2a1d20] text-gray-500 hover:border-gray-500 cursor-pointer transition-all">
+<span class="material-symbols-outlined">shield</span>
+</div>
+<div class="size-10 flex items-center justify-center rounded border border-primary bg-primary/20 text-white shadow-[0_0_10px_rgba(236,19,55,0.3)] cursor-pointer transition-all">
+<span class="material-symbols-outlined">skull</span>
+</div>
+<div class="size-10 flex items-center justify-center rounded border border-border-iron bg-[#2a1d20] text-gray-500 hover:border-gray-500 cursor-pointer transition-all">
+<span class="material-symbols-outlined">auto_fix_high</span>
+</div>
+<div class="size-10 flex items-center justify-center rounded border border-border-iron bg-[#2a1d20] text-gray-500 hover:border-gray-500 cursor-pointer transition-all">
+<span class="material-symbols-outlined">stadia_controller</span>
+</div>
+<div class="size-10 flex items-center justify-center rounded border border-border-iron bg-[#2a1d20] text-gray-500 hover:border-gray-500 cursor-pointer transition-all">
+<span class="material-symbols-outlined">music_note</span>
+</div>
+</div>
+</div>
+<!-- Module 2: Stats & Bonuses (Bento Grid) -->
+<div class="grid grid-cols-2 gap-3">
+<!-- Main Stat -->
+<div class="col-span-2 p-4 bg-[#221013] border border-border-iron rounded flex items-center justify-between group hover:border-primary/50 transition-colors">
+<div class="flex items-center gap-3">
+<div class="p-2 bg-[#39282b] rounded text-primary">
+<span class="material-symbols-outlined">psychology</span>
+</div>
+<div class="flex flex-col">
+<span class="text-xs text-gray-400 uppercase tracking-wider font-bold">Atributo Principal</span>
+<span class="text-lg text-white font-medium">Inteligencia</span>
+</div>
+</div>
+<span class="text-2xl font-bold text-primary">+2</span>
+</div>
+<!-- Secondary Stat -->
+<div class="p-4 bg-[#221013] border border-border-iron rounded flex flex-col gap-2 group hover:border-gray-600 transition-colors">
+<div class="flex items-center justify-between">
+<span class="text-xs text-gray-400 uppercase tracking-wider font-bold">Constitución</span>
+<span class="material-symbols-outlined text-gray-500 text-sm">fitness_center</span>
+</div>
+<span class="text-xl font-bold text-green-400">+1</span>
+</div>
+<!-- Proficiencies -->
+<div class="p-4 bg-[#221013] border border-border-iron rounded flex flex-col gap-2 group hover:border-gray-600 transition-colors">
+<div class="flex items-center justify-between">
+<span class="text-xs text-gray-400 uppercase tracking-wider font-bold">Dados de Golpe</span>
+<span class="material-symbols-outlined text-gray-500 text-sm">casino</span>
+</div>
+<span class="text-xl font-bold text-white">1d6</span>
+</div>
+</div>
+<!-- Module 3: Proficiencies List -->
+<div class="flex flex-col gap-2">
+<span class="text-xs text-gray-400 font-bold uppercase tracking-widest">Dominio</span>
+<div class="flex flex-wrap gap-2">
+<span class="px-3 py-1 bg-[#2a1d20] border border-border-iron rounded text-xs text-gray-300 font-sans">Dagas</span>
+<span class="px-3 py-1 bg-[#2a1d20] border border-border-iron rounded text-xs text-gray-300 font-sans">Bastones</span>
+<span class="px-3 py-1 bg-[#2a1d20] border border-border-iron rounded text-xs text-gray-300 font-sans">Ballestas ligeras</span>
+<span class="px-3 py-1 bg-[#2a1d20] border border-border-iron rounded text-xs text-gray-300 font-sans">Armadura ligera</span>
+</div>
+</div>
+<!-- Module 4: Lore Panel (Parchment Style) -->
+<div class="mt-2 flex-1 relative">
+<div class="absolute -top-3 left-4 px-2 bg-[#181112] text-xs text-gold-accent uppercase tracking-widest font-bold z-10">
+                        Compendio Arcano
+                    </div>
+<div class="h-full bg-[#241f18] border border-[#4a3e2a] rounded p-6 shadow-inner relative overflow-hidden">
+<!-- Decorative corner -->
+<div class="absolute top-0 right-0 p-2 opacity-20">
+<span class="material-symbols-outlined text-4xl text-[#cfae70]">menu_book</span>
+</div>
+<div class="relative z-10 text-[#d4cbb8] font-display text-lg leading-relaxed text-justify opacity-90">
+<span class="float-left text-5xl font-bold text-primary mr-2 mt-[-8px] font-display">N</span>ecromancy is not merely the manipulation of the dead, but the understanding of the life force itself. Practitioners of this dark art, often misunderstood as villains, are scholars of the ultimate truth: that death is but a doorway. 
+                            <br/><br/>
+                            Unlike the crude animators of flesh, a true Necromancer weaves spells that sap the vitality of their foes to bolster their own, commanding spirits to confuse and terrify. They walk the thin line between the mortal realm and the Shadowfell, their very presence causing the temperature to drop and shadows to lengthen.
+                            <br/><br/>
+<span class="text-sm italic text-[#a39885] block mt-4 border-l-2 border-primary pl-4">
+                                "To deny death is to deny half of existence. We merely... ensure the cycle continues."
+                            </span>
+</div>
+</div>
+</div>
+</div>
+<!-- Fixed Bottom Action Bar -->
+<div class="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#0f0a0a] via-[#0f0a0a] to-transparent z-20 flex justify-end items-center border-t border-border-iron/30 backdrop-blur-sm">
+<button class="relative overflow-hidden group bg-primary hover:bg-red-600 text-white font-bold py-3 px-8 rounded shadow-[0_0_20px_rgba(236,19,55,0.4)] transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-3">
+<span class="relative z-10 tracking-widest uppercase text-sm">Sellar Pacto</span>
+<span class="material-symbols-outlined relative z-10 text-lg">ink_pen</span>
+<!-- Button Glow Effect -->
+<div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+</button>
+</div>
+</aside>
+</main>
+</body></html>

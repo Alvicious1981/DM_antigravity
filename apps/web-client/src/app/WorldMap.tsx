@@ -37,8 +37,21 @@ export default function WorldMap() {
         setIsCapturing(false);
     };
 
+    const TRAVEL_FLAVOR_TEXTS = [
+        "The path forward is paved with the bones of those who hesitated.",
+        "A cold wind whispers through the scorched pines.",
+        "The scent of ozone and ancient stone fills the air.",
+        "Eyes watch from the shifting shadows of the abyss.",
+        "Your footsteps echo like heartbeats in the silence.",
+        "The stars above bleed a faint, sickly violet light.",
+        "Ancient runes on the trail-side stones hum with low energy."
+    ];
+
+    const [currentFlavorText, setCurrentFlavorText] = useState(TRAVEL_FLAVOR_TEXTS[0]);
+
     const handleTravel = (nodeId: string) => {
         setTravelingTo(nodeId);
+        setCurrentFlavorText(TRAVEL_FLAVOR_TEXTS[Math.floor(Math.random() * TRAVEL_FLAVOR_TEXTS.length)]);
         const playerId = combatants.find(c => c.isPlayer)?.id || "player_1";
         sendAction({
             action: "map_interaction",
@@ -205,19 +218,23 @@ export default function WorldMap() {
                                     <Navigation className="w-12 h-12 text-[#c5a059]" />
                                 </motion.div>
                                 <h2 className="text-2xl font-cinzel text-[#c5a059] mb-2 tracking-widest">TRAVERSING THE VOID</h2>
-                                <p className="text-stone-400 text-sm mb-8 italic">"The path forward is paved with the bones of those who hesitated."</p>
+                                <p className="text-stone-400 text-sm mb-8 italic">"{currentFlavorText}"</p>
 
-                                <div className="h-2 w-full bg-black/40 rounded-full border border-white/5 overflow-hidden">
-                                    <motion.div
-                                        initial={{ width: "0%" }}
-                                        animate={{ width: "100%" }}
-                                        transition={{ duration: 4, ease: "easeInOut" }}
-                                        className="h-full bg-gradient-to-r from-[#8a6e3e] to-[#c5a059] shadow-[0_0_15px_rgba(197,160,89,0.3)]"
-                                    />
+                                <div className="flex gap-4 justify-center mt-2">
+                                    {["᛭", "ᚱ", "᛫", "ᚢ", "᛭"].map((rune, i) => (
+                                        <motion.span
+                                            key={i}
+                                            className="text-[#c5a059]/70 text-xl select-none"
+                                            animate={{ opacity: [0.15, 1, 0.15] }}
+                                            transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.45, ease: "easeInOut" }}
+                                        >
+                                            {rune}
+                                        </motion.span>
+                                    ))}
                                 </div>
-                                <div className="mt-2 text-[10px] text-stone-500 uppercase tracking-widest font-mono">
-                                    Arriving at {nodes.find(n => n.id === travelingTo)?.name || "Destination"}...
-                                </div>
+                                <p className="mt-4 text-[10px] text-stone-500 uppercase tracking-widest font-cinzel">
+                                    {nodes.find(n => n.id === travelingTo)?.name || "Destination"} approaches...
+                                </p>
                             </div>
                         </motion.div>
                     )}

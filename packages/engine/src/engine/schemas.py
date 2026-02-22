@@ -13,13 +13,15 @@ class CombatantState(BaseModel):
     hp: int
     hp_max: int
     ac: int
-    cr: float = 0
+    cr: Union[float, str] = 0
+
     type: str = "unknown"
     conditions: List[str] = []
     resistances: List[str] = []
     immunities: List[str] = []
     current: bool = False
-    position: Optional[int] = None
+    position: Optional[Union[int, str]] = None
+
 
 
 class SaveInfo(BaseModel):
@@ -47,8 +49,10 @@ class InventoryItemModel(BaseModel):
     name: str
     location: str
     slot_type: Optional[str]
+    grid_index: Optional[int] = None
     charges: int
     stats: dict
+    visual_asset_url: Optional[str] = None
     rarity: str = "Common"
     attunement: bool = False
 
@@ -56,7 +60,7 @@ class InventoryItemModel(BaseModel):
 # --- Incoming Action Payloads ---
 
 class BaseAction(BaseModel):
-    action: str
+    pass
 
 class GetInventoryAction(BaseAction):
     action: Literal["get_inventory"]
@@ -123,6 +127,8 @@ class CastSpellAction(BaseAction):
     attacker_id: str = "player"
     target_id: str = "enemy"
     target_ids: Optional[List[str]] = None
+    condition: Optional[str] = None
+    is_save: bool = False
     # CRITICAL: Overrides removed for security (§ STRIDE-T1)
 
 
@@ -151,6 +157,15 @@ class GetSpellsAction(BaseAction):
     action: Literal["get_spells"]
     character_id: str
 
+
+class DistributeLootAction(BaseAction):
+    action: Literal["distribute_loot"]
+    item_ids: List[str]
+    target_character_id: str
+
+class CloseWidgetAction(BaseAction):
+    action: Literal["close_widget"]
+    widget_type: str
 
 class MapInteractionAction(BaseAction):
     action: Literal["map_interaction"]
@@ -200,7 +215,7 @@ GameAction = Union[
 # --- Outgoing Events ---
 
 class BaseEvent(BaseModel):
-    type: str
+    pass
 
 class ConnectionEstablishedEvent(BaseEvent):
     type: Literal["CONNECTION_ESTABLISHED"]
@@ -218,6 +233,12 @@ class NarrativeChunkEvent(BaseEvent):
     content: str
     index: int
     done: bool
+
+class NarrativeEvent(BaseEvent):
+    type: Literal["NARRATIVE_EVENT"] = "NARRATIVE_EVENT"
+    content: str
+    event_type: str = "travel" # travel, discovery, encounter
+    metadata: Optional[dict] = None
 
 class MonsterSearchResultsEvent(BaseEvent):
     type: Literal["MONSTER_SEARCH_RESULTS"]

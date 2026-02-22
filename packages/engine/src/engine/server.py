@@ -49,6 +49,20 @@ async def lifespan(app: FastAPI):
             FOREIGN KEY (actor_id) REFERENCES actors(id)
         )
     """)
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS inventory_item (
+            id TEXT PRIMARY KEY,
+            character_id TEXT,
+            template_id TEXT,
+            location TEXT DEFAULT 'backpack',
+            slot_type TEXT,
+            grid_index INTEGER DEFAULT 0,
+            current_charges INTEGER DEFAULT 0,
+            is_identified INTEGER DEFAULT 1,
+            visual_asset_url TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
     db.commit()
     try:
         count = db.execute("SELECT COUNT(*) FROM srd_mechanic").fetchone()[0]

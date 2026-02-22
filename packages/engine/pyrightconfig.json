@@ -1,0 +1,12 @@
+{
+    "include": [
+        "src"
+    ],
+    "executionEnvironments": [
+        {
+            "root": "src"
+        }
+    ],
+    "reportMissingImports": true,
+    "reportMissingTypeStubs": false
+}

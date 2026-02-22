@@ -4,7 +4,7 @@ Validates actions against SRD 5.1 mechanical constraints.
 Second Law: State is Truth — if the DB says no, the action is rejected.
 """
 
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 
 def ability_modifier(score: int) -> int:
@@ -92,7 +92,8 @@ def consume_spell_slot(
 
 
 def validate_concentration(
-    is_concentrating: bool,
+    caster_id: str,
+    tracker: "InitiativeTracker",
     new_spell_requires_concentration: bool,
 ) -> bool:
     """
@@ -103,5 +104,12 @@ def validate_concentration(
     Note: The engine should handle the side effect (dropping old concentration),
     this validator just confirms the ACTION Itself is legal (casting is always legal, just has consequences).
     """
-    return True  # Casting is always valid; logic core must handle the drop
+    if not new_spell_requires_concentration: return True
 
+
+    caster = next((c for c in tracker.combatants if c.id == caster_id), None)
+    if caster is None:
+        return False
+    if caster.has_condition("Concentrating"):
+        tracker.remove_condition(caster_id, "Concentrating")
+    return True
