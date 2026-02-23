@@ -7,6 +7,7 @@ from typing import AsyncGenerator, Dict, Any, Optional
 from google import genai
 from .tokenomics import reporter as tokenomics_reporter
 from .memory import MemoryService
+from .memory_keeper import MemoryKeeper
 
 class ChronosClient:
     """
@@ -19,31 +20,38 @@ class ChronosClient:
         self.api_key = api_key or os.getenv("GEMINI_API_KEY")
         self.is_mock = not self.api_key
         
+        # Internal Lore/History Persistence (Phase 2 Upgrade)
+        self.memory_keeper = MemoryKeeper()
+        
         if not self.is_mock:
             self.client = genai.Client(api_key=self.api_key)
             self.memory_service = MemoryService(api_key=self.api_key)
             
         self.system_prompt = textwrap.dedent("""
-            ID: CHRONOS. ROLE: DM ENGINE.
+            ID: CHRONOS. ROLE: SUPREME ARBITRATOR (AD&D 5e/OSR).
             LAWS:
             1. CODE IS LAW: Follow JSON Pact (h:hit, d:dmg, t:type). No contradictions.
-            2. V6 AESTHETIC: Visceral Dark Fantasy. Tone: Gritty, oppressive. Focus: Senses, meat, bone, shadow, rust, decay.
-            3. NO GAMEY LANG: No numbers, HP, rounds, "critical hit". Use diegetic descriptions ("a killing blow", "barely scratches").
-            4. DENSE: 1-2 sentences max. Pure, evocative prose.
-            5. CONTEXT: Respect the retrieved MEMORIES if provided.
-            6. FORMAT: Do not prefix with labels like "Narrative:". Just the raw text.
+            2. V6 AESTHETIC: Visceral Dark Fantasy. Tone: Gritty, oppressive. 
+            3. SHOW, DON'T TELL: Use the Five Senses (smell of ozone, taste of iron, rasp of steel). 
+               No game numbers or "critical hit". Use diegetic weight ("a blow that shatters ribs").
+            4. OSR PROTOCOLS: Narrative must reflect monster morale and reaction tables. 
+               The first sign of an enemy is a "Trace" (tracks, heat, sound).
+            5. NO QUANTUM OGRES: Telegraph danger. If the pact contains environment hints, use them to foreshadow.
+            6. LORE FAITHFULNESS: Respect the WORLD_LORE and SESSION_LOG context.
+            7. DENSE: 1-2 sentences of pure, evocative prose. No labels.
         """)
 
     async def generate_narrative(self, fact_packet: Dict[str, Any]) -> AsyncGenerator[str, None]:
         """
         Stream narrative text based on the fact packet.
         """
+        accumulated_text = ""
         if self.is_mock:
             async for chunk in self._generate_mock_narrative(fact_packet):
+                accumulated_text += chunk
                 yield chunk
         else:
             try:
-                accumulated_text = ""
                 async for chunk in self._generate_real_narrative(fact_packet):
                     accumulated_text += chunk
                     yield chunk
@@ -53,7 +61,11 @@ class ChronosClient:
             except Exception as e:
                 print(f"Chronos API Error: {e}. Falling back to mock.")
                 async for chunk in self._generate_mock_narrative(fact_packet):
+                    accumulated_text += chunk
                     yield chunk
+
+        # 3. Log to Session Log (Common for both real and mock)
+        self.memory_keeper.log_event(f"Chronos: {accumulated_text}")
 
     def _compress_pact(self, fact_packet: Dict[str, Any]) -> str:
         """Map verbose keys to short tokens for input efficiency."""
@@ -73,13 +85,18 @@ class ChronosClient:
         # New google-genai async streaming logic
         pact = self._compress_pact(fact_packet)
         context_memories = ""
+        
+        # 1. Semantic Search Memories
         if not self.is_mock and self.memory_service:
             search_query = f"{fact_packet.get('attacker', '')} {fact_packet.get('action_type', '')} {fact_packet.get('target', '')}"
             memories = self.memory_service.retrieve_similar_memories(search_query, limit=2)
             if memories:
                 context_memories = "\nMEMORIES:\n" + "\n".join([f"- {m['content']}" for m in memories])
 
-        prompt = f"Pact: {pact}{context_memories}\nNarrate:"
+        # 2. Structural Lore Context (Lore Keeper)
+        lore_context = f"\nLORE CONTEXT:\n{self.memory_keeper.get_context_for_ai()}"
+
+        prompt = f"Pact: {pact}{context_memories}{lore_context}\nNarrate:"
         
         # Async stream
         stream = await self.client.aio.models.generate_content(
@@ -194,8 +211,16 @@ class ChronosClient:
 
         # Simulate typing/streaming delay
         chunk_size = 5
-        # Refactored to avoid slice-index lint issue in some environments
-        for i in range(0, len(narrative), chunk_size):
-            chunk = narrative[i : i + chunk_size]
+        curr_narrative = str(narrative)
+        for i in range(0, len(curr_narrative), chunk_size):
+            # Building chunk manually to avoid slice indexing lint issues on some configurations
+            chunk = ""
+            end = i + chunk_size
+            if end > len(curr_narrative):
+                end = len(curr_narrative)
+            
+            for j in range(i, end):
+                chunk += curr_narrative[j]
+                
             yield chunk
             await asyncio.sleep(0.01)

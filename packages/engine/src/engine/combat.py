@@ -30,6 +30,8 @@ class AttackResult:
     target_remaining_hp: int = 0
     target_status: str = "alive"
     active_conditions: list[str] = field(default_factory=list)
+    environment_tags: list[str] = field(default_factory=list)
+    narrative_hook: Optional[str] = None
 
     def to_fact_packet(self) -> dict:
         """Serialize to JSON Fact Packet for the Narrative Agent."""
@@ -51,6 +53,8 @@ class AttackResult:
             "target_remaining_hp": self.target_remaining_hp,
             "target_status": self.target_status,
             "active_conditions": self.active_conditions,
+            "env": self.environment_tags,
+            "hook": self.narrative_hook
         }
 
 
@@ -68,6 +72,8 @@ def resolve_attack(
     target_immunities: Optional[list[str]] = None,
     advantage: bool = False,
     disadvantage: bool = False,
+    environment_tags: Optional[list[str]] = None,
+    narrative_hook: Optional[str] = None,
 ) -> AttackResult:
     """
     Resolve a melee or ranged weapon attack following SRD 5.1 rules.
@@ -128,6 +134,8 @@ def resolve_attack(
         damage_type=damage_type,
         target_remaining_hp=remaining_hp,
         target_status=status,
+        environment_tags=environment_tags or [],
+        narrative_hook=narrative_hook,
     )
 
 
@@ -169,6 +177,8 @@ def resolve_spell_attack(
         damage_type=result.damage_type,
         target_remaining_hp=result.target_remaining_hp,
         target_status=result.target_status,
+        environment_tags=result.environment_tags,
+        narrative_hook=result.narrative_hook,
     )
 
 
@@ -188,6 +198,8 @@ def resolve_saving_throw(
     advantage: bool = False,
     disadvantage: bool = False,
     half_damage_on_success: bool = True,
+    environment_tags: Optional[list[str]] = None,
+    narrative_hook: Optional[str] = None,
 ) -> AttackResult:
     """
     Resolve a saving throw capability (e.g. Fireball, Poison Breath).
@@ -247,10 +259,11 @@ def resolve_saving_throw(
         hit=not success, # Semantic mapping: "hit" means "effect took full hold"? ambiguous, stick to save_success
         critical=False,  # Saves don't crit
         fumble=False,
-        damage_total=final_damage,
         damage_type=damage_type,
         target_remaining_hp=remaining_hp,
         target_status=status,
+        environment_tags=environment_tags or [],
+        narrative_hook=narrative_hook,
     )
 
 
@@ -312,6 +325,8 @@ def resolve_aoe_spell(
     targets_save_bonuses: dict[str, int], # Map target_id -> bonus
     targets_resistances: Optional[dict[str, list[str]]] = None,
     targets_immunities: Optional[dict[str, list[str]]] = None,
+    environment_tags: Optional[list[str]] = None,
+    narrative_hook: Optional[str] = None,
 ) -> list[AttackResult]:
     """
     Resolve an Area of Effect spell against multiple targets.
@@ -365,7 +380,9 @@ def resolve_aoe_spell(
             damage_type=damage_type,
             target_remaining_hp=remaining_hp,
             target_status=status,
-            active_conditions=[] # reserved for future
+            active_conditions=[], # reserved for future
+            environment_tags=environment_tags if environment_tags is not None else [],
+            narrative_hook=narrative_hook,
         ))
         
     return results
@@ -376,7 +393,7 @@ def calculate_ac(
     armor_type: str = "none", # none, light, medium, heavy
     shield_bonus: int = 0,
     wears_armor: bool = False,
-    class_features: list[dict] = None, # e.g. [{"name": "Unarmored Defense (Monk)", "value": 15}]
+    class_features: Optional[list[dict]] = None, # e.g. [{"name": "Unarmored Defense (Monk)", "value": 15}]
     magical_bonuses: int = 0
 ) -> int:
     """
