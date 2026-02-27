@@ -128,6 +128,12 @@ export function HighFidelityCharacterCreator({
                         >
                             Empezar (Elfo Oscuro)
                         </button>
+                        <button
+                            onClick={onCancel}
+                            className="mt-4 block w-full px-6 py-3 text-sm text-slate-500 hover:text-slate-300 uppercase tracking-widest transition-colors"
+                        >
+                            ← Volver al Menú
+                        </button>
                     </div>
                 </div>
             )}

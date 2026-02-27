@@ -2,8 +2,12 @@
   "name": "web-client",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=18 <25"
+  },
   "scripts": {
     "dev": "next dev",
+    "dev:node20": "cross-env PATH=%TEMP%\\node20extract\\node-v20.19.0-win-x64;%PATH% next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"

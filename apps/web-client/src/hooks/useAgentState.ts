@@ -170,6 +170,15 @@ export interface MapDataEvent {
 
 // ... existing interfaces ...
 
+export interface SaveInfo {
+    save_id: string;
+    created_at: string;
+    character_name: string;
+    character_class: string;
+    level: number;
+    location: string;
+}
+
 export interface GameState {
     connected: boolean;
     sessionId: SessionId | null;
@@ -334,7 +343,7 @@ export function useAgentState(wsUrl?: string) {
     }, []);
 
     const getSpells = () => {
-        if (\!wsRef.current) return;
+        if (!wsRef.current) return;
         wsRef.current.send(JSON.stringify({
             type: "get_spells",
             character_id: "player_1"
@@ -342,14 +351,14 @@ export function useAgentState(wsUrl?: string) {
     };
 
     const listSaves = useCallback(() => {
-        if (\!wsRef.current) return;
+        if (!wsRef.current) return;
         wsRef.current.send(JSON.stringify({
             action: "list_saves"
         }));
     }, []);
 
     const requestMapData = useCallback(() => {
-        if (\!wsRef.current) return;
+        if (!wsRef.current) return;
         const playerId = gameState.combatants.find(c => c.isPlayer)?.id || "player_1";
         wsRef.current.send(JSON.stringify({
             action: "map_interaction",
@@ -361,16 +370,16 @@ export function useAgentState(wsUrl?: string) {
     const removeToast = useCallback((index: number) => {
         setGameState((prev) => ({
             ...prev,
-            toasts: prev.toasts.filter((_, i) => i \!== index)
+            toasts: prev.toasts.filter((_, i) => i !== index)
         }));
     }, []);
 
     const triggerMapCapture = useCallback(async (nodeId: string) => {
         try {
-            const response = await fetch(`http://localhost:8000/api/world/map/capture/${nodeId}`, {
+            const response = await fetch(`/api/world/map/capture/${nodeId}`, {
                 method: "POST"
             });
-            if (\!response.ok) throw new Error("Capture failed");
+            if (!response.ok) throw new Error("Capture failed");
             const data = await response.json();
             return data.image_url;
         } catch (error) {

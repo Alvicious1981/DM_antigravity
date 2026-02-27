@@ -88,8 +88,21 @@ async def new_game(request: CharacterCreationRequest):
 async def list_saves():
     """List all available save games."""
     db = get_db()
-    rows = db.execute("SELECT save_id, created_at FROM game_saves ORDER BY created_at DESC").fetchall()
-    return [SaveInfo(save_id=row["save_id"], created_at=row["created_at"]) for row in rows]
+    rows = db.execute("SELECT save_id, created_at, data_json FROM game_saves ORDER BY created_at DESC").fetchall()
+    
+    saves = []
+    for row in rows:
+        data = json.loads(row["data_json"])
+        char = data.get("character", {})
+        saves.append(SaveInfo(
+            save_id=row["save_id"],
+            created_at=row["created_at"],
+            character_name=char.get("name", "Unknown"),
+            character_class=char.get("class_id", "Adventurer").replace("class_", "").capitalize(),
+            level=char.get("level", 1),
+            location=data.get("location", "Unknown Lands")
+        ))
+    return saves
 
 @router.post("/load/{save_id}")
 async def load_game(save_id: str):

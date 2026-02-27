@@ -1,27 +1,32 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 import asyncio
 import json
+import os
 import traceback
 from pydantic import ValidationError
 from ..dice import roll
 from ..srd_queries import get_weapon_stats, get_monster_stats, search_monsters, get_spell_mechanics
-from ..inventory import get_inventory, generate_loot, create_inventory_item, equip_item, unequip_item, distribute_loot
-from ..state import tracker, save_game, load_game, combatant_positions
+from ..inventory import get_inventory, generate_loot, create_inventory_item, equip_item, unequip_item, distribute_loot, add_gold, get_gold
+from ..state import tracker, tracker_lock, save_game, load_game, list_saves, combatant_positions
+from ..rules import validate_concentration
 from ..schemas import (
     GetInventoryAction, GenerateLootAction, SearchMonstersAction, AddCombatantAction,
     EquipItemAction, UnequipItemAction, AttackAction, MonsterAttackAction, CastSpellAction,
     RollInitiativeAction, StartCombatAction, NextTurnAction, RollAction, GetSpellsAction,
-    DistributeLootAction, MapInteractionAction, SaveGameAction, LoadGameAction,
+    DistributeLootAction, CloseWidgetAction, MapInteractionAction, SaveGameAction, LoadGameAction,
     ConnectionEstablishedEvent, InventoryUpdateEvent, NarrativeChunkEvent,
     MonsterSearchResultsEvent, InitiativeUpdateEvent, StatePatchEvent, DiceResultEvent, AckEvent,
     InventoryItemModel, CombatantState, LogEvent, SpellBookUpdateEvent, SpellData,
-    LootDistributedEvent, MapUpdateEvent, ListSavesAction, MapDataEvent, MapNode
+    LootDistributedEvent, MapUpdateEvent, ListSavesAction, MapDataEvent, MapNode,
+    NarrativeEvent, GetShopAction, GoldUpdateEvent, ShopInventoryEvent, ShopItemModel,
 )
 from ..maps import get_node, get_all_nodes
 from ..combat import resolve_attack, resolve_saving_throw, resolve_aoe_spell, AttackResult
 from ..spells import get_all_spells, get_spell
 from ..ai.chronos import ChronosClient
 from ..ai.visual_vault import VisualVaultClient
+from ..ai.cartographer import CartographerClient
+from ..ai.treasurer import TreasurerClient
 
 router = APIRouter()
 
@@ -51,6 +56,8 @@ class ConnectionManager:
 manager = ConnectionManager()
 chronos = ChronosClient()
 visual_vault = VisualVaultClient()
+cartographer = CartographerClient()
+treasurer = TreasurerClient()
 
 # --- Rate Limiting Config (§ STRIDE-D1) ---
 RATE_LIMIT_DELAY = 0.5  # Seconds between actions
@@ -66,7 +73,7 @@ def build_combatant_states():
             id=c.id, name=c.name, initiative=c.initiative,
             active=c.is_active, hp=c.hp_current, hp_max=c.hp_max, ac=c.ac,
             cr=c.cr, type=c.type, resistances=c.resistances, immunities=c.immunities,
-            conditions=c.conditions,
+            conditions=[cond.condition_id for cond in c.conditions],
             current=(c.id == current_id),
             position=combatant_positions.get(c.id)
         ) for c in tracker.combatants
@@ -74,7 +81,7 @@ def build_combatant_states():
 
 
 @router.websocket("/ws/game/{session_id}")
-async def game_websocket(websocket: WebSocket, session_id: str, role: str = "player", dm_token: str = None):
+async def game_websocket(websocket: WebSocket, session_id: str, role: str = "player", dm_token: str | None = None):
     """
     AG-UI WebSocket endpoint (§6).
     Handles bidirectional streaming of typed Pydantic events.
@@ -82,7 +89,8 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
     """
     # Simple DM authentication
     final_role = "player"
-    if role == "dm" and dm_token == "AG-DM-2026": # Hardcoded secret for now (§ STRIDE-E1)
+    _dm_token = os.environ.get("DM_TOKEN", "AG-DM-2026")
+    if role == "dm" and dm_token == _dm_token:
         final_role = "dm"
     
     await manager.connect(websocket)
@@ -149,7 +157,8 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                 elif action_type == "generate_loot":
                     payload = GenerateLootAction(**data)
                     loot_ids = generate_loot(payload.cr)
-                    
+                    target_id = payload.target_character_id
+
                     if target_id:
                         # Implementation of §8.3 Skill: The Treasurer
                         created_instance_ids = []
@@ -186,20 +195,41 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                         )
                         await manager.send_event(websocket, inventory_event.model_dump(mode='json'))
                     
-                    # Narrative Chunk Streaming (Chronos)
-                    fact_packet = {
-                        "action_type": "generate_loot",
-                        "cr": payload.cr,
-                        "item_count": len(loot_ids),
-                        "recipient": target_id
-                    }
+                    # Treasurer enriches fact_packet with gold and appraisal data
+                    world_rep = cartographer.memory.lore.get("world_state", {}).get("reputation", 0)
+                    hydrated_items = []
+                    if target_id:
+                        hydrated_items = [i for i in get_inventory(target_id)
+                                         if i["template_id"] in loot_ids]
+                    fact_packet = treasurer.enrich_loot_packet(
+                        fact_packet={
+                            "action_type": "generate_loot",
+                            "cr": payload.cr,
+                            "item_count": len(loot_ids),
+                            "recipient": target_id,
+                        },
+                        cr=payload.cr,
+                        items=hydrated_items,
+                        reputation=world_rep,
+                    )
+                    # Persist gold reward (Iron Law §2 — State is Truth)
+                    if target_id and fact_packet.get("gold_reward", 0) > 0:
+                        gold_delta = fact_packet["gold_reward"]
+                        new_total = add_gold(target_id, gold_delta)
+                        await manager.send_event(websocket, GoldUpdateEvent(
+                            type="GOLD_UPDATE",
+                            character_id=target_id,
+                            gold=new_total,
+                            delta=gold_delta,
+                        ).model_dump(mode='json'))
+
                     chunk_index = 0
                     async for text_chunk in chronos.generate_narrative(fact_packet):
                         await manager.send_event(websocket, NarrativeChunkEvent(
                             type="NARRATIVE_CHUNK", content=text_chunk, index=chunk_index, done=False
                         ).model_dump(mode='json'))
                         chunk_index += 1
-                    
+
                     await manager.send_event(websocket, NarrativeChunkEvent(
                         type="NARRATIVE_CHUNK", content="", index=chunk_index, done=True
                     ).model_dump(mode='json'))
@@ -269,7 +299,8 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                             ).model_dump(mode='json'))
                              continue
 
-                        combatant_positions[payload.character_id] = payload.target_node_id
+                        async with tracker_lock:
+                            combatant_positions[payload.character_id] = payload.target_node_id
                         target_node = get_node(payload.target_node_id)
                         
                         # Narrative
@@ -287,13 +318,12 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                             message=msg
                         ).model_dump(mode='json'))
                         
-                        # Trigger Chronos Description
-                        fact_packet = {
-                            "action_type": "travel",
-                            "destination": target_node.name,
-                            "description": target_node.description,
-                            "risk_level": target_node.risk_level
-                        }
+                        # Cartographer builds enriched fact_packet (encounter injection, sensory seed)
+                        world_ctx = cartographer.memory.lore.get("world_state")
+                        fact_packet = cartographer.build_travel_fact_packet(
+                            node=target_node,
+                            world_context=world_ctx,
+                        )
                         chunk_index = 0
                         async for text_chunk in chronos.generate_narrative(fact_packet):
                             await manager.send_event(websocket, NarrativeChunkEvent(
@@ -331,8 +361,7 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                         # Broadcast full state update
                         await manager.broadcast(InitiativeUpdateEvent(
                             type="INITIATIVE_UPDATE",
-                            combatants=build_combatant_states(),
-                            round=tracker.round
+                            combatants=build_combatant_states()
                         ).model_dump(mode='json'))
                         
                         await manager.send_event(websocket, LogEvent(
@@ -378,11 +407,12 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                         except Exception as e:
                             print(f"Error fetching stats for {payload.template_id}: {e}")
 
-                    tracker.add_combatant(
-                        payload.instance_id, name, dex, payload.is_player, hp_max, ac, actions,
-                        payload.resistances, payload.immunities, payload.cr, payload.type
-                    )
-                    
+                    async with tracker_lock:
+                        tracker.add_combatant(
+                            payload.instance_id, name, dex, payload.is_player, hp_max, ac, actions,
+                            payload.resistances, payload.immunities, payload.cr, payload.type
+                        )
+
                     event = InitiativeUpdateEvent(
                         type="INITIATIVE_UPDATE",
                         combatants=build_combatant_states()
@@ -433,10 +463,10 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                     # 2. Check Conditions
                     if attacker:
                         disabling_conditions = {"Surprised", "Unconscious", "Paralyzed", "Petrified", "Stunned", "Incapacitated"}
-                        active_disablers = [c for c in attacker.conditions if c in disabling_conditions]
+                        active_disablers = [c for c in attacker.conditions if c.condition_id in disabling_conditions]
                         if active_disablers:
                              await manager.send_event(websocket, LogEvent(
-                                type="LOG", message=f"Cannot act: You are {active_disablers[0]}!", level="warning"
+                                type="LOG", message=f"Cannot act: You are {active_disablers[0].condition_id}!", level="warning"
                             ).model_dump(mode='json'))
                              continue
 
@@ -493,6 +523,11 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                         target_current_hp=target.hp_current, # Server-side HP
                     )
 
+                    async with tracker_lock:
+                        target.hp_current = result.target_remaining_hp
+                        if result.target_status == "dead":
+                            target.is_active = False
+
                     fact_packet = result.to_fact_packet()
                     fact_packet.update({
                         "attacker_name": payload.attacker_id,
@@ -539,17 +574,18 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                     if not attacker or not attacker.actions:
                         print(f"Monster {payload.attacker_id} cannot attack")
                         continue
-                    
+                    assert attacker is not None  # narrowing for type checker
+
                     if not target:
                         print(f"Monster target {payload.target_id} not found")
                         continue
 
                     # Check Conditions
                     disabling_conditions = {"Surprised", "Unconscious", "Paralyzed", "Petrified", "Stunned", "Incapacitated"}
-                    active_disablers = [c for c in attacker.conditions if c in disabling_conditions]
+                    active_disablers = [c for c in attacker.conditions if c.condition_id in disabling_conditions]
                     if active_disablers:
                             await manager.send_event(websocket, LogEvent(
-                            type="LOG", message=f"{attacker.name} is {active_disablers[0]} and cannot act!", level="warning"
+                            type="LOG", message=f"{attacker.name} is {active_disablers[0].condition_id} and cannot act!", level="warning"
                         ).model_dump(mode='json'))
                             continue
 
@@ -568,8 +604,13 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                         damage_dice_count=monster_action.get("damage_dice_count", 1),
                         damage_modifier=monster_action.get("damage_modifier", 0),
                         damage_type=monster_action.get("damage_type", "slashing"),
-                        target_current_hp=target.hp, # Server-side HP
+                        target_current_hp=target.hp_current, # Server-side HP
                     )
+
+                    async with tracker_lock:
+                        target.hp_current = result.target_remaining_hp
+                        if result.target_status == "dead":
+                            target.is_active = False
 
                     fact_packet = result.to_fact_packet()
                     fact_packet.update({
@@ -634,10 +675,10 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                     attacker = next((c for c in tracker.combatants if c.id == payload.attacker_id), None)
                     if attacker:
                         disabling_conditions = {"Surprised", "Unconscious", "Paralyzed", "Petrified", "Stunned", "Incapacitated"}
-                        active_disablers = [c for c in attacker.conditions if c in disabling_conditions]
+                        active_disablers = [c for c in attacker.conditions if c.condition_id in disabling_conditions]
                         if active_disablers:
                              await manager.send_event(websocket, LogEvent(
-                                type="LOG", message=f"Cannot cast spell: You are {active_disablers[0]}!", level="warning"
+                                type="LOG", message=f"Cannot cast spell: You are {active_disablers[0].condition_id}!", level="warning"
                             ).model_dump(mode='json'))
                              continue
                     
@@ -648,7 +689,12 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                             type="LOG", message=f"Spell {payload.spell_id} not found in registry!", level="error"
                         ).model_dump(mode='json'))
                         continue
-                        
+
+                    # 2b. Concentration Check (§ Iron Law I — Code is Law)
+                    requires_concentration = "Concentration" in (spell_def.duration or "")
+                    async with tracker_lock:
+                        validate_concentration(payload.attacker_id, tracker, requires_concentration)
+
                     # 3. Resolve Spell Stats from Registry
                     sides = spell_def.damage_dice_sides
                     count = spell_def.damage_dice_count
@@ -670,7 +716,7 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                         for tid in payload.target_ids:
                             t = next((c for c in tracker.combatants if c.id == tid), None)
                             if t:
-                                targets_hp[tid] = t.hp
+                                targets_hp[tid] = t.hp_current
                                 # Simplified save bonus for now
                                 if save_stat == "dex":
                                     targets_save[tid] = t.dex_mod
@@ -736,7 +782,7 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                                 damage_dice_count=count,
                                 damage_modifier=0, # Damage modifier is usually 0 for spells unless specified
                                 damage_type=dmg_type,
-                                target_current_hp=t.hp,
+                                target_current_hp=t.hp_current,
                                 half_damage_on_success=half_dmg
                             )
                         else:
@@ -749,12 +795,21 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                                 damage_dice_count=count,
                                 damage_modifier=0, # Damage modifier is usually 0 for spells unless specified
                                 damage_type=dmg_type,
-                                target_current_hp=t.hp,
+                                target_current_hp=t.hp_current,
                             )
                         results = [res]
 
+                    # Apply damage to tracker (Iron Law §2 — State is Truth)
+                    async with tracker_lock:
+                        for res in results:
+                            cbt = next((c for c in tracker.combatants if c.id == res.target_id), None)
+                            if cbt:
+                                cbt.hp_current = res.target_remaining_hp
+                                if res.target_status == "dead":
+                                    cbt.is_active = False
+
                     # --- Events & Narrative ---
-                    
+
                     # 1. State Patches & Condition Application
                     patches = []
                     for res in results:
@@ -779,7 +834,7 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                             # Patch the conditions list for the frontend
                             # Get current conditions from tracker
                             combatant = next((c for c in tracker.combatants if c.id == res.target_id), None)
-                            current_conditions = combatant.conditions if combatant else [payload.condition]
+                            current_conditions = [cond.condition_id for cond in combatant.conditions] if combatant else [payload.condition]
                             
                             patches.append({
                                 "op": "replace",
@@ -841,6 +896,11 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                         type="LOG", message=msg, level="info"
                     ).model_dump(mode='json'))
 
+                    # Mark caster as Concentrating if spell requires it
+                    if requires_concentration:
+                        async with tracker_lock:
+                            tracker.add_condition(payload.attacker_id, "Concentrating")
+
                 elif action_type == "roll_initiative":
                     payload = RollInitiativeAction(**data)
                     
@@ -862,9 +922,10 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                          except Exception:
                              pass
 
-                    tracker.add_combatant(payload.combatant_id, name, dex, payload.is_player, hp_max, ac, actions)
-                    combatant = next(c for c in tracker.combatants if c.id == payload.combatant_id)
-                    init_val = tracker.roll_initiative(combatant)
+                    async with tracker_lock:
+                        tracker.add_combatant(payload.combatant_id, name, dex, payload.is_player, hp_max, ac, actions)
+                        combatant = next(c for c in tracker.combatants if c.id == payload.combatant_id)
+                        init_val = tracker.roll_initiative(combatant)
                     
                     # Narrative with Chronos
                     fact_packet = {
@@ -892,7 +953,8 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
 
                 elif action_type == "start_combat":
                     payload = StartCombatAction(**data)
-                    tracker.start_encounter()
+                    async with tracker_lock:
+                        tracker.start_encounter()
                     current = tracker.get_current_actor()
                     
                     fact_packet = {
@@ -918,7 +980,8 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
 
                 elif action_type == "next_turn":
                     payload = NextTurnAction(**data)
-                    current = tracker.next_turn()
+                    async with tracker_lock:
+                        current = tracker.next_turn()
                     
                     fact_packet = {"action_type": "next_turn", "current_actor": current.name if current else "Unknown"}
                     chunk_index = 0
@@ -946,6 +1009,55 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                         notation=result.notation,
                         rolls=list(result.rolls),
                         total=result.total
+                    ).model_dump(mode='json'))
+
+                elif action_type == "close_widget":
+                    payload = CloseWidgetAction(**data)
+                    async with tracker_lock:
+                        if hasattr(tracker, "active_widgets") and payload.widget_id in tracker.active_widgets:
+                            tracker.active_widgets.remove(payload.widget_id)
+                    await manager.send_event(websocket, AckEvent(
+                        type="ACK", status="ok", message=f"Widget {payload.widget_id} closed."
+                    ).model_dump(mode='json'))
+
+                elif action_type == "list_saves":
+                    saves = list_saves()
+                    await manager.send_event(websocket, {"type": "SAVE_LIST", "saves": saves})
+
+                elif action_type == "get_shop":
+                    payload = GetShopAction(**data)
+                    node = get_node(payload.node_id)
+                    if not node:
+                        await manager.send_event(websocket, AckEvent(
+                            type="ACK", status="error", message=f"Unknown node: {payload.node_id}"
+                        ).model_dump(mode='json'))
+                        continue
+
+                    if not treasurer.has_shop(node.type):
+                        await manager.send_event(websocket, ShopInventoryEvent(
+                            type="SHOP_INVENTORY",
+                            node_id=node.id,
+                            node_type=node.type,
+                            has_shop=False,
+                            items=[],
+                        ).model_dump(mode='json'))
+                        continue
+
+                    world_rep = cartographer.memory.lore.get("world_state", {}).get("reputation", 0)
+                    rarities = treasurer.get_shop_rarities(node.type)
+                    shop_items = [
+                        ShopItemModel(
+                            rarity=r,
+                            buy_price=treasurer.buy_price(r, world_rep),
+                        )
+                        for r in rarities
+                    ]
+                    await manager.send_event(websocket, ShopInventoryEvent(
+                        type="SHOP_INVENTORY",
+                        node_id=node.id,
+                        node_type=node.type,
+                        has_shop=True,
+                        items=shop_items,
                     ).model_dump(mode='json'))
 
                 else:

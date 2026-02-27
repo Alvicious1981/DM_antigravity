@@ -46,3 +46,7 @@ htmlcov/
 
 # Generated assets
 /apps/web-client/public/generated/
+
+# Local Data and Tools
+.antigravity_data/
+java-*-openjdk-*/

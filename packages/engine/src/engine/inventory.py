@@ -164,6 +164,37 @@ def distribute_loot(target_character_id: str, item_ids: list[str]) -> list[dict]
         
     return created_items
 
+def _ensure_gold_table():
+    get_db().execute("""
+        CREATE TABLE IF NOT EXISTS character_gold (
+            character_id TEXT PRIMARY KEY,
+            gold INTEGER NOT NULL DEFAULT 0
+        )
+    """)
+
+
+def add_gold(character_id: str, amount: int) -> int:
+    """Add gold to a character's wallet. Returns new total."""
+    _ensure_gold_table()
+    db = get_db()
+    db.execute("""
+        INSERT INTO character_gold (character_id, gold) VALUES (?, ?)
+        ON CONFLICT(character_id) DO UPDATE SET gold = gold + excluded.gold
+    """, (character_id, max(0, amount)))
+    db.commit()
+    row = db.execute("SELECT gold FROM character_gold WHERE character_id = ?", (character_id,)).fetchone()
+    return row["gold"] if row else 0
+
+
+def get_gold(character_id: str) -> int:
+    """Return current gold balance for a character (0 if none recorded)."""
+    _ensure_gold_table()
+    row = get_db().execute(
+        "SELECT gold FROM character_gold WHERE character_id = ?", (character_id,)
+    ).fetchone()
+    return row["gold"] if row else 0
+
+
 def equip_item(character_id: str, item_id: str, slot: str) -> dict:
     """
     Equip an item to a specific slot (e.g. 'main_hand', 'armor').

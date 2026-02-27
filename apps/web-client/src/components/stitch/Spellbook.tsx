@@ -53,6 +53,18 @@ export function Spellbook({
         setSelectedSpellId(filteredSpells[0].id);
     }
 
+    // Guard: render empty state when no spells available
+    if (spells.length === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center h-full bg-[#1a120b] text-[#d4c5b0]">
+                <div className="fixed inset-0 bg-leather-dark opacity-80 z-[-1]" />
+                <span className="material-symbols-outlined text-6xl mb-4 opacity-30">auto_stories</span>
+                <h2 className="font-display text-2xl font-bold tracking-widest uppercase mb-2">Grimorio Vacío</h2>
+                <p className="text-sm italic opacity-60">Aún no tienes hechizos en tu grimorio.</p>
+            </div>
+        );
+    }
+
     return (
         <div className="relative z-10 flex flex-col h-screen w-full max-w-[1600px] mx-auto p-4 md:p-8 lg:p-10 font-body select-none">
 

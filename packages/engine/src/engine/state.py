@@ -1,5 +1,6 @@
 import asyncio
 from .initiative import InitiativeTracker, Combatant
+from .conditions import ActiveCondition
 from .db import get_db
 import json
 from dataclasses import asdict
@@ -46,6 +47,11 @@ def load_game(save_id: str) -> bool:
     
     tracker.combatants.clear()
     for c_data in data.get("combatants", []):
+        raw_conditions = c_data.get("conditions", [])
+        c_data["conditions"] = [
+            ActiveCondition(**cond) if isinstance(cond, dict) else cond
+            for cond in raw_conditions
+        ]
         c = Combatant(**c_data)
         tracker.combatants.append(c)
     

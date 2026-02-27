@@ -27,6 +27,10 @@ class CombatantState(BaseModel):
 class SaveInfo(BaseModel):
     save_id: str
     created_at: str
+    character_name: Optional[str] = "Unknown"
+    character_class: Optional[str] = "Adventurer"
+    level: int = 1
+    location: Optional[str] = "Unknown Lands"
 
 
 class CharacterCreationRequest(BaseModel):
@@ -165,7 +169,7 @@ class DistributeLootAction(BaseAction):
 
 class CloseWidgetAction(BaseAction):
     action: Literal["close_widget"]
-    widget_type: str
+    widget_id: str
 
 class MapInteractionAction(BaseAction):
     action: Literal["map_interaction"]
@@ -186,6 +190,11 @@ class LoadGameAction(BaseAction):
 
 class ListSavesAction(BaseAction):
     action: Literal["list_saves"]
+
+class GetShopAction(BaseAction):
+    action: Literal["get_shop"]
+    node_id: str
+    character_id: str = "player_1"
 
 
 # Union type for validation
@@ -208,7 +217,8 @@ GameAction = Union[
     MapInteractionAction,
     SaveGameAction,
     LoadGameAction,
-    ListSavesAction
+    ListSavesAction,
+    GetShopAction,
 ]
 
 
@@ -320,3 +330,23 @@ class MapUpdateEvent(BaseEvent):
     node_id: Optional[str] = None
     interaction_type: str
     message: Optional[str] = None
+
+
+class GoldUpdateEvent(BaseEvent):
+    type: Literal["GOLD_UPDATE"] = "GOLD_UPDATE"
+    character_id: str
+    gold: int   # new total
+    delta: int  # amount added this transaction
+
+
+class ShopItemModel(BaseModel):
+    rarity: str
+    buy_price: int
+
+
+class ShopInventoryEvent(BaseEvent):
+    type: Literal["SHOP_INVENTORY"] = "SHOP_INVENTORY"
+    node_id: str
+    node_type: str
+    has_shop: bool
+    items: List[ShopItemModel]

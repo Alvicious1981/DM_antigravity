@@ -259,6 +259,7 @@ def resolve_saving_throw(
         hit=not success, # Semantic mapping: "hit" means "effect took full hold"? ambiguous, stick to save_success
         critical=False,  # Saves don't crit
         fumble=False,
+        damage_total=final_damage,
         damage_type=damage_type,
         target_remaining_hp=remaining_hp,
         target_status=status,
