@@ -11,6 +11,7 @@ import LootModal from '../../app/LootModal';
 export interface GameplayHudProps {
     onAction?: (actionId: string) => void;
     onSendMessage?: (message: string) => void;
+    onLevelUp?: () => void;
 }
 
 type GameTab = 'historia' | 'personaje' | 'grimorio' | 'inventario' | 'diario' | 'mapa';
@@ -24,7 +25,7 @@ const TABS: { id: GameTab; label: string; icon: string }[] = [
     { id: 'mapa', label: 'Mapa', icon: 'map' },
 ];
 
-export function GameplayHud({ onAction, onSendMessage }: GameplayHudProps) {
+export function GameplayHud({ onAction, onSendMessage, onLevelUp }: GameplayHudProps) {
     const {
         narrative,
         currentNarrative,
@@ -36,6 +37,7 @@ export function GameplayHud({ onAction, onSendMessage }: GameplayHudProps) {
         unequipItem,
         lastFactPacket,
         activeWidgets,
+        gold,
     } = useAgentState() as any;
 
     const [inputText, setInputText] = useState('');
@@ -82,14 +84,28 @@ export function GameplayHud({ onAction, onSendMessage }: GameplayHudProps) {
                     ))}
                 </nav>
 
-                {/* Player HP badge */}
+                {/* Player HP badge & Level Up trigger */}
                 {player && (
                     <div className="flex items-center gap-2 shrink-0 relative z-10">
+                        <button 
+                            onClick={onLevelUp}
+                            className="flex items-center gap-1 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 border border-amber-400/50 rounded px-2 py-1 text-white shadow-[0_0_10px_rgba(251,191,36,0.3)] transition-all active:scale-95 group"
+                            title="Subir de Nivel"
+                        >
+                            <span className="material-symbols-outlined text-sm group-hover:animate-spin">flare</span>
+                            <span className="text-[10px] font-bold uppercase tracking-tighter">Lvl Up</span>
+                        </button>
                         <span className="text-[#d4af37] text-xs font-bold font-display hidden xl:block truncate max-w-[120px]">{player.name}</span>
                         <div className="flex items-center gap-1 bg-[#3a1a1a] border border-[#b91c1c] rounded px-2 py-1">
                             <span className="material-symbols-outlined text-[#ef4444] text-sm">favorite</span>
                             <span className="text-white text-xs font-bold font-mono">{(player as any).hp_current ?? '?'}</span>
                         </div>
+                        {gold > 0 && (
+                            <div className="flex items-center gap-1 bg-[#2a2010] border border-[#d4af37]/40 rounded px-2 py-1">
+                                <span className="material-symbols-outlined text-[#d4af37] text-sm">paid</span>
+                                <span className="text-[#d4af37] text-xs font-bold font-mono">{gold}</span>
+                            </div>
+                        )}
                     </div>
                 )}
             </header>
@@ -193,13 +209,13 @@ export function GameplayHud({ onAction, onSendMessage }: GameplayHudProps) {
             {activeWidgets?.find((w: any) => w.widget_type === 'LOOT_MODAL') && (
                 <LootModal
                     items={activeWidgets.find((w: any) => w.widget_type === 'LOOT_MODAL')?.data?.items || []}
-                    onClose={() => sendAction({ type: 'close_widget', widget_type: 'LOOT_MODAL' })}
+                    onClose={() => sendAction({ action: 'close_widget', widget_id: 'LOOT_MODAL' })}
                     onTakeAll={() => {
                         const widget = activeWidgets.find((w: any) => w.widget_type === 'LOOT_MODAL');
                         const itemIds = (widget?.data?.items || []).map((i: any) => i.id);
                         const charId = combatants.find((c: any) => c.isPlayer)?.id || 'player_1';
                         sendAction({ action: 'distribute_loot', item_ids: itemIds, target_character_id: charId });
-                        sendAction({ type: 'close_widget', widget_type: 'LOOT_MODAL' });
+                        sendAction({ action: 'close_widget', widget_id: 'LOOT_MODAL' });
                     }}
                 />
             )}

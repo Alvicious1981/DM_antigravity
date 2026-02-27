@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Level Up - Dragons and Dungeons</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;700;900&amp;family=Cinzel:wght@400;700;900&amp;family=Lora:ital,wght@0,400;0,700;1,400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "gold": "#d4af37",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#1a120b",
+                        "basalt": "#2d241e",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "sans-serif"],
+                        "gothic": ["Cinzel", "serif"],
+                        "serif": ["Lora", "serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .glowing-gold {
+            text-shadow: 0 0 15px rgba(212, 175, 55, 0.6);
+        }
+        .stone-panel {
+            background-color: #2d241e;
+            border: 2px solid #3d342e;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+        }
+        .rune-button:hover {
+            box-shadow: 0 0 20px #ec5b13;
+        }
+    </style>
+</head>
+<body class="bg-background-dark font-serif text-slate-100 selection:bg-primary/40 overflow-hidden">
+<div class="relative flex h-screen w-full flex-col bg-background-dark overflow-hidden">
+<!-- Atmospheric Background Layer -->
+<div class="absolute inset-0 z-0 opacity-40">
+<div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&amp;w=2564&amp;auto=format&amp;fit=crop')] bg-cover bg-center mix-blend-overlay" data-alt="Ancient dark ruins with floating golden embers"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-background-dark via-transparent to-background-dark"></div>
+</div>
+<!-- Layout Container -->
+<div class="relative z-10 flex h-full flex-col px-8 py-6">
+<!-- Top Navigation / Header -->
+<header class="flex items-center justify-between border-b border-primary/20 pb-4 mb-4">
+<div class="flex items-center gap-4">
+<div class="size-6 text-gold glowing-gold">
+<span class="material-symbols-outlined !text-3xl">flare</span>
+</div>
+<h2 class="font-gothic text-xl font-bold tracking-widest text-gold uppercase">Dragons and Dungeons</h2>
+</div>
+<div class="flex gap-4">
+<button class="flex items-center justify-center rounded-lg h-10 w-10 bg-basalt border border-gold/30 text-gold hover:bg-primary/20 transition-all">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<button class="flex items-center justify-center rounded-lg h-10 w-10 bg-basalt border border-gold/30 text-gold hover:bg-primary/20 transition-all">
+<span class="material-symbols-outlined">help</span>
+</button>
+</div>
+</header>
+<!-- Main Title -->
+<div class="text-center mb-8">
+<h1 class="font-gothic text-6xl font-black text-gold glowing-gold tracking-[0.2em] uppercase">Level Up</h1>
+<p class="text-gold/60 font-serif italic text-lg mt-2">The gods favor your journey, mortal.</p>
+</div>
+<!-- Main Workspace -->
+<div class="flex-1 grid grid-cols-12 gap-8 items-stretch">
+<!-- Left Panel: Attributes -->
+<div class="col-span-3 flex flex-col gap-4">
+<div class="stone-panel p-6 rounded-xl flex-1 border-t-4 border-t-gold/50">
+<h3 class="font-gothic text-2xl text-gold border-b border-gold/20 pb-2 mb-6 text-center">Attributes</h3>
+<div class="space-y-6">
+<!-- Attribute Row -->
+<div class="flex items-center justify-between group">
+<div>
+<p class="font-gothic text-lg text-slate-100">Strength</p>
+<p class="text-xs text-slate-400">Physical power and carry load</p>
+</div>
+<div class="flex items-center gap-3">
+<span class="font-gothic text-2xl text-gold">14</span>
+<button class="rune-button flex items-center justify-center size-8 bg-primary text-slate-100 rounded border border-gold/50 hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">add</span>
+</button>
+</div>
+</div>
+<div class="flex items-center justify-between group">
+<div>
+<p class="font-gothic text-lg text-slate-100">Dexterity</p>
+<p class="text-xs text-slate-400">Reflexes and range accuracy</p>
+</div>
+<div class="flex items-center gap-3">
+<span class="font-gothic text-2xl text-gold">10</span>
+<button class="rune-button flex items-center justify-center size-8 bg-primary text-slate-100 rounded border border-gold/50 hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">add</span>
+</button>
+</div>
+</div>
+<div class="flex items-center justify-between group">
+<div>
+<p class="font-gothic text-lg text-slate-100">Constitution</p>
+<p class="text-xs text-slate-400">Endurance and health pool</p>
+</div>
+<div class="flex items-center gap-3">
+<span class="font-gothic text-2xl text-gold">16</span>
+<button class="rune-button flex items-center justify-center size-8 bg-primary text-slate-100 rounded border border-gold/50 hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">add</span>
+</button>
+</div>
+</div>
+<div class="flex items-center justify-between group">
+<div>
+<p class="font-gothic text-lg text-slate-100">Intelligence</p>
+<p class="text-xs text-slate-400">Spell power and knowledge</p>
+</div>
+<div class="flex items-center gap-3">
+<span class="font-gothic text-2xl text-gold">08</span>
+<button class="rune-button flex items-center justify-center size-8 bg-basalt/50 text-slate-500 rounded border border-slate-700 cursor-not-allowed">
+<span class="material-symbols-outlined">add</span>
+</button>
+</div>
+</div>
+</div>
+<div class="mt-12 p-4 bg-black/40 rounded border border-gold/10">
+<p class="text-center text-gold/80 font-gothic text-sm mb-2">Points Remaining</p>
+<p class="text-center text-4xl font-gothic text-gold glowing-gold">02</p>
+</div>
+</div>
+</div>
+<!-- Central Hero Bust -->
+<div class="col-span-6 relative flex items-center justify-center">
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="w-full h-full max-w-lg bg-gradient-to-t from-primary/20 via-transparent to-transparent blur-3xl rounded-full"></div>
+</div>
+<div class="relative z-10 w-full h-full flex flex-col items-center justify-end">
+<div class="w-full h-[600px] bg-no-repeat bg-contain bg-bottom drop-shadow-[0_0_50px_rgba(236,91,19,0.4)]" data-alt="Hero character bust glowing with golden divine light" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAtF6fWsaTKaU0rv_xy2Yx3XBVdJj0kqYb6vUWRU5nNIe3kD4vHZilXe5ato7TwPsZs8NAe052oe6SjgT6BjoiURJ5n5fg0nxkV4PNfGxdaPM-dkOuoySh4nwUiHLuAShkUSg8MDpmyHhAO3fOcV6BCQ6sdk5GI_cm59lH-rhVXk7vQ73YgBqK312jtXDMxDVBvQnvxsJUjFYxzuG5BTkVQ-7kDNJ1eeF4w7Srrh4Xzjz20adfRbKc9hU4-q9BTCOlYwiuILuufwQ');"></div>
+<div class="mt-4 stone-panel px-12 py-3 rounded-full border border-gold/30">
+<p class="font-gothic text-2xl tracking-widest text-gold uppercase">Lvl 12 Paladin</p>
+</div>
+</div>
+</div>
+<!-- Right Panel: Skills & Perks Bento -->
+<div class="col-span-3 flex flex-col gap-4">
+<div class="stone-panel p-6 rounded-xl flex-1 border-t-4 border-t-gold/50">
+<h3 class="font-gothic text-2xl text-gold border-b border-gold/20 pb-2 mb-6 text-center">New Talents</h3>
+<div class="grid grid-cols-1 gap-4 overflow-y-auto max-h-[500px] pr-2 custom-scrollbar">
+<!-- Perk Item -->
+<div class="bg-black/40 border border-gold/20 p-4 rounded-lg hover:border-primary cursor-pointer transition-colors group">
+<div class="flex items-center gap-3 mb-2">
+<div class="size-10 bg-basalt flex items-center justify-center border border-gold/40 text-gold group-hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined">shield</span>
+</div>
+<h4 class="font-gothic text-gold">Bastion of Faith</h4>
+</div>
+<p class="text-xs text-slate-300 italic">Gain +5 Armor when standing still for more than 3 seconds.</p>
+</div>
+<!-- Perk Item -->
+<div class="bg-primary/10 border border-primary/50 p-4 rounded-lg cursor-pointer ring-1 ring-primary/50">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-3">
+<div class="size-10 bg-primary/30 flex items-center justify-center border border-primary text-gold">
+<span class="material-symbols-outlined">local_fire_department</span>
+</div>
+<h4 class="font-gothic text-primary font-bold">Divine Smite</h4>
+</div>
+<span class="material-symbols-outlined text-primary">check_circle</span>
+</div>
+<p class="text-xs text-slate-100">Your critical hits now deal an additional 2d6 Radiant damage.</p>
+</div>
+<!-- Perk Item -->
+<div class="bg-black/40 border border-gold/20 p-4 rounded-lg hover:border-primary cursor-pointer transition-colors group opacity-60 grayscale hover:grayscale-0 hover:opacity-100">
+<div class="flex items-center gap-3 mb-2">
+<div class="size-10 bg-basalt flex items-center justify-center border border-gold/40 text-gold group-hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined">auto_fix_normal</span>
+</div>
+<h4 class="font-gothic text-gold">Holy Radiance</h4>
+</div>
+<p class="text-xs text-slate-300 italic">Heal all nearby allies for 10% of your missing health.</p>
+</div>
+<!-- Perk Item -->
+<div class="bg-black/40 border border-gold/20 p-4 rounded-lg hover:border-primary cursor-pointer transition-colors group opacity-60 grayscale hover:grayscale-0 hover:opacity-100">
+<div class="flex items-center gap-3 mb-2">
+<div class="size-10 bg-basalt flex items-center justify-center border border-gold/40 text-gold group-hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined">sword_rose</span>
+</div>
+<h4 class="font-gothic text-gold">Second Wind</h4>
+</div>
+<p class="text-xs text-slate-300 italic">Once per battle, drop to 1 HP instead of dying.</p>
+</div>
+</div>
+<div class="mt-6 flex flex-col gap-3">
+<button class="w-full bg-primary py-4 font-gothic text-xl text-slate-100 rounded-lg border-2 border-gold/50 shadow-[0_0_20px_rgba(236,91,19,0.3)] hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-widest">
+                            Confirm Level Up
+                        </button>
+<button class="w-full bg-basalt py-2 font-gothic text-sm text-gold/50 rounded-lg border border-gold/20 hover:text-gold transition-colors uppercase tracking-widest">
+                            Reset Points
+                        </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Footer Info -->
+<footer class="mt-4 flex justify-between items-center text-gold/40 text-xs font-serif italic border-t border-primary/20 pt-2">
+<div>XP Progress: 12,450 / 15,000</div>
+<div class="flex gap-4">
+<span>Gold: 1,420g</span>
+<span>Fame: Renowned</span>
+</div>
+</footer>
+</div>
+</div>
+<style>
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.2);
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #ec5b13;
+        border-radius: 10px;
+    }
+</style>
+</body></html>

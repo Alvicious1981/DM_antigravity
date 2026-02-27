@@ -1,4 +1,4 @@
-import { GameState, AgUiEvent, NarrativeChunk, NarrativeEvent, StatePatch, ShowWidget, SpellBookUpdate, DiceResult, InitiativeUpdate, InventoryUpdate, LogEvent, MapDataEvent, MonsterSearchEvent } from "./useAgentState";
+import { GameState, AgUiEvent, NarrativeChunk, NarrativeEvent, StatePatch, ShowWidget, SpellBookUpdate, DiceResult, InitiativeUpdate, InventoryUpdate, LogEvent, MapDataEvent, MonsterSearchEvent, GoldUpdate, ShopInventory } from "./useAgentState";
 import { asCombatantId } from "../domain/types";
 import { spawnFloatingText } from "../components/FloatingTextLayer";
 
@@ -12,8 +12,24 @@ export type MessageHandler = (data: any, bufferRef: React.MutableRefObject<strin
 
 const connectionEstablishedHandler: MessageHandler = () => (state) => state;
 
+let lastNarrativeIndex = -1;
+
 const narrativeChunkHandler: MessageHandler = (data: NarrativeChunk, bufferRef) => {
     const chunk = data;
+
+    // Sequence Validation (§ Track A.2)
+    // If indices are out of sync, we have a race condition or dropped packet.
+    if (chunk.index <= lastNarrativeIndex && chunk.index !== 0) {
+        console.warn(`[AG-UI] Out of sequence NarrativeChunk: received ${chunk.index}, expected > ${lastNarrativeIndex}`);
+        // We continue anyway but log it for debugging. 
+        // Index 0 resets the counter for a new stream.
+    }
+
+    if (chunk.index === 0) {
+        bufferRef.current = ""; // Reset buffer on new stream explicitly
+    }
+
+    lastNarrativeIndex = chunk.index;
     bufferRef.current += chunk.content;
 
     return (prev) => {
@@ -27,6 +43,7 @@ const narrativeChunkHandler: MessageHandler = (data: NarrativeChunk, bufferRef) 
 
         const finalText = bufferRef.current;
         bufferRef.current = "";
+        lastNarrativeIndex = -1; // Reset for next stream
         return {
             ...prev,
             narrative: [...prev.narrative, finalText],
@@ -188,6 +205,20 @@ const monsterSearchResultsHandler: MessageHandler = (data: MonsterSearchEvent) =
     monsterSearchResults: data.results,
 });
 
+const goldUpdateHandler: MessageHandler = (data: GoldUpdate) => (prev) => ({
+    ...prev,
+    gold: data.gold,
+    toasts: [
+        ...prev.toasts,
+        { type: "LOG", message: `+${data.delta} gp (total: ${data.gold} gp)`, level: "info" } as LogEvent,
+    ],
+});
+
+const shopInventoryHandler: MessageHandler = (data: ShopInventory) => (prev) => ({
+    ...prev,
+    shopInventory: data,
+});
+
 const ackHandler: MessageHandler = (data: any) => (prev) => {
     if (data.status === "error") {
         return {
@@ -215,6 +246,8 @@ const handlers: Record<string, MessageHandler> = {
     LOOT_DISTRIBUTED: lootDistributedHandler,
     MONSTER_SEARCH_RESULTS: monsterSearchResultsHandler,
     ACK: ackHandler,
+    GOLD_UPDATE: goldUpdateHandler,
+    SHOP_INVENTORY: shopInventoryHandler,
 };
 
 export function dispatchMessage(

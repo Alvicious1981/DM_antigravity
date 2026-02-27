@@ -3,9 +3,10 @@ import asyncio
 import json
 import os
 import traceback
+import uuid
 from pydantic import ValidationError
 from ..dice import roll
-from ..srd_queries import get_weapon_stats, get_monster_stats, search_monsters, get_spell_mechanics
+from ..srd_queries import get_weapon_stats, get_monster_stats, search_monsters, get_spell_mechanics, get_random_monster_by_cr
 from ..inventory import get_inventory, generate_loot, create_inventory_item, equip_item, unequip_item, distribute_loot, add_gold, get_gold
 from ..state import tracker, tracker_lock, save_game, load_game, list_saves, combatant_positions
 from ..rules import validate_concentration
@@ -13,7 +14,8 @@ from ..schemas import (
     GetInventoryAction, GenerateLootAction, SearchMonstersAction, AddCombatantAction,
     EquipItemAction, UnequipItemAction, AttackAction, MonsterAttackAction, CastSpellAction,
     RollInitiativeAction, StartCombatAction, NextTurnAction, RollAction, GetSpellsAction,
-    DistributeLootAction, CloseWidgetAction, MapInteractionAction, SaveGameAction, LoadGameAction,
+    DistributeLootAction, CloseWidgetAction, MapInteractionAction, NarrativeActionAction,
+    SaveGameAction, LoadGameAction,
     ConnectionEstablishedEvent, InventoryUpdateEvent, NarrativeChunkEvent,
     MonsterSearchResultsEvent, InitiativeUpdateEvent, StatePatchEvent, DiceResultEvent, AckEvent,
     InventoryItemModel, CombatantState, LogEvent, SpellBookUpdateEvent, SpellData,
@@ -80,6 +82,192 @@ def build_combatant_states():
     ]
 
 
+async def stream_narrative(websocket: WebSocket, fact_packet: dict):
+    """Refactored Narrative Streaming Helper with Indexing (§ Track A.2)"""
+    chunk_index = 0
+    async for text_chunk in chronos.generate_narrative(fact_packet):
+        await manager.send_event(websocket, NarrativeChunkEvent(
+            type="NARRATIVE_CHUNK", content=text_chunk, index=chunk_index, done=False
+        ).model_dump(mode='json'))
+        chunk_index += 1
+
+    await manager.send_event(websocket, NarrativeChunkEvent(
+        type="NARRATIVE_CHUNK", content="", index=chunk_index, done=True
+    ).model_dump(mode='json'))
+
+
+def _risk_to_cr(risk_level: int) -> tuple:
+    """Map a node's risk level to a (min_cr, max_cr) band for monster selection."""
+    if risk_level <= 2:   return (0.0, 1.0)
+    elif risk_level <= 4: return (1.0, 3.0)
+    elif risk_level <= 6: return (3.0, 6.0)
+    elif risk_level <= 8: return (6.0, 10.0)
+    else:                 return (10.0, 20.0)
+
+
+async def _resolve_combat_end(websocket: WebSocket, defeated_enemies: list):
+    """Award loot and gold after all enemies are defeated, then reset tracker."""
+    player = next((c for c in tracker.combatants if c.is_player), None)
+    if not player:
+        return
+
+    character_id = player.id
+    avg_cr = (sum(e.cr for e in defeated_enemies) / len(defeated_enemies)) if defeated_enemies else 1.0
+
+    # Reset tracker to exploration mode
+    async with tracker_lock:
+        tracker.has_started = False
+        tracker.combatants = [c for c in tracker.combatants if c.is_player]
+        tracker.turn_index = 0
+
+    # Loot generation
+    loot_ids = []
+    try:
+        loot_ids = generate_loot(max(1, int(avg_cr)))
+    except Exception as e:
+        print(f"Loot generation failed: {e}")
+
+    created_ids = []
+    for template_id in loot_ids:
+        try:
+            asset_url = await visual_vault.get_asset_url(template_id, "combat trophy")
+        except Exception:
+            asset_url = f"/assets/items/{template_id}.png"
+        try:
+            new_item = create_inventory_item(character_id, template_id, visual_asset_url=asset_url)
+            created_ids.append(new_item["id"])
+        except Exception as e:
+            print(f"Item creation failed for {template_id}: {e}")
+
+    # Gold via Treasurer
+    world_rep = cartographer.memory.lore.get("world_state", {}).get("reputation", 0)
+    enriched = treasurer.enrich_loot_packet(
+        fact_packet={"action_type": "combat_victory", "cr": avg_cr},
+        cr=max(1, int(avg_cr)),
+        items=[i for i in get_inventory(character_id) if i["instance_id"] in created_ids],
+        reputation=world_rep,
+    )
+    gold_delta = enriched.get("gold_reward", 0)
+    if gold_delta > 0:
+        new_total = add_gold(character_id, gold_delta)
+        await manager.send_event(websocket, GoldUpdateEvent(
+            type="GOLD_UPDATE", character_id=character_id, gold=new_total, delta=gold_delta,
+        ).model_dump(mode='json'))
+
+    # Send inventory + loot events
+    all_items = get_inventory(character_id)
+    new_items = [i for i in all_items if i["instance_id"] in created_ids]
+    await manager.send_event(websocket, LootDistributedEvent(
+        type="LOOT_DISTRIBUTED", character_id=character_id,
+        items=[InventoryItemModel(**i) for i in new_items],
+        message=f"Victory! Found {len(loot_ids)} item(s).",
+    ).model_dump(mode='json'))
+    await manager.send_event(websocket, InventoryUpdateEvent(
+        type="INVENTORY_UPDATE", character_id=character_id,
+        items=[InventoryItemModel(**i) for i in all_items],
+    ).model_dump(mode='json'))
+
+    # Victory narrative
+    victory_fact = {
+        "action_type": "combat_victory",
+        "enemies_defeated": [e.name for e in defeated_enemies],
+        "gold_reward": gold_delta,
+        "items_found": len(loot_ids),
+    }
+    await stream_narrative(websocket, victory_fact)
+
+    await manager.send_event(websocket, LogEvent(
+        type="LOG",
+        message=f"Victory! +{gold_delta} gp. {len(loot_ids)} item(s) recovered.",
+        level="success",
+    ).model_dump(mode='json'))
+
+    # Final initiative update (now empty of enemies)
+    await manager.send_event(websocket, InitiativeUpdateEvent(
+        type="INITIATIVE_UPDATE", combatants=build_combatant_states(),
+    ).model_dump(mode='json'))
+
+
+async def _run_combat_loop(websocket: WebSocket, advance_first: bool = True):
+    """
+    Auto-advance turns after a player action.
+    - advance_first=True  → called after a player attack (need to end player's turn first)
+    - advance_first=False → called at encounter start (process current actor if it's a monster)
+    Loops through monster turns until the player's turn comes up or combat ends.
+    """
+    if not tracker.has_started:
+        return
+
+    max_steps = 20  # Safety cap
+    first = True
+
+    for _ in range(max_steps):
+        player = next((c for c in tracker.combatants if c.is_player), None)
+        if not player or not player.is_active:
+            return  # Player dead — frontend HP watch handles death screen
+
+        enemies_alive = [c for c in tracker.combatants if not c.is_player and c.is_active]
+        if not enemies_alive:
+            all_enemies = [c for c in tracker.combatants if not c.is_player]
+            await _resolve_combat_end(websocket, all_enemies)
+            return
+
+        # Advance turn or inspect current
+        if advance_first or not first:
+            async with tracker_lock:
+                current = tracker.next_turn()
+        else:
+            current = tracker.get_current_actor()
+        first = False
+
+        await manager.send_event(websocket, InitiativeUpdateEvent(
+            type="INITIATIVE_UPDATE", combatants=build_combatant_states(),
+        ).model_dump(mode='json'))
+
+        if not current or current.is_player:
+            return  # Player's turn — stop and wait for input
+
+        if not current.is_active or not current.actions:
+            continue  # Skip dead/actionless monster
+
+        # --- Auto-resolve monster attack ---
+        act = current.actions[0]
+        result = resolve_attack(
+            attacker_id=current.id,
+            target_id=player.id,
+            attack_bonus=act.get("attack_bonus", 0),
+            target_ac=player.ac,
+            damage_dice_sides=act.get("damage_dice_sides", 6),
+            damage_dice_count=act.get("damage_dice_count", 1),
+            damage_modifier=act.get("damage_modifier", 0),
+            damage_type=act.get("damage_type", "slashing"),
+            target_current_hp=player.hp_current,
+        )
+        async with tracker_lock:
+            player.hp_current = result.target_remaining_hp
+            if result.target_status == "dead":
+                player.is_active = False
+
+        fp = result.to_fact_packet()
+        fp.update({"attacker_name": current.name, "action_name": act.get("name", "attack"), "is_player": False})
+        await stream_narrative(websocket, fp)
+
+        await manager.send_event(websocket, LogEvent(
+            type="LOG",
+            message=f"{current.name}: {'HIT' if result.hit else 'MISS'} ({result.damage_total} dmg)",
+            level="warning",
+        ).model_dump(mode='json'))
+
+        await manager.send_event(websocket, StatePatchEvent(
+            type="STATE_PATCH",
+            patches=[{"op": "replace", "path": f"/targets/{player.id}/hp", "value": result.target_remaining_hp}],
+            fact_packet=fp,
+        ).model_dump(mode='json'))
+
+        if not player.is_active:
+            return  # Player died — frontend will detect HP <= 0
+
+
 @router.websocket("/ws/game/{session_id}")
 async def game_websocket(websocket: WebSocket, session_id: str, role: str = "player", dm_token: str | None = None):
     """
@@ -95,10 +283,16 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
     
     await manager.connect(websocket)
     try:
-        # Send initial connection confirmation with assigned role
+        # Determine the primary character for this session 
+        # (In v1.0, we default to player_1, but we send it explicitly to the client)
+        active_player = next((c for c in tracker.combatants if c.is_player), None)
+        character_id = active_player.id if active_player else "player_1"
+
+        # Send initial connection confirmation with assigned role and specific character_id
         event = ConnectionEstablishedEvent(
             type="CONNECTION_ESTABLISHED",
             session_id=session_id,
+            character_id=character_id,
             role=final_role,
             message=f"Connected to Dungeon Cortex Engine as {final_role.upper()}"
         )
@@ -223,16 +417,8 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                             delta=gold_delta,
                         ).model_dump(mode='json'))
 
-                    chunk_index = 0
-                    async for text_chunk in chronos.generate_narrative(fact_packet):
-                        await manager.send_event(websocket, NarrativeChunkEvent(
-                            type="NARRATIVE_CHUNK", content=text_chunk, index=chunk_index, done=False
-                        ).model_dump(mode='json'))
-                        chunk_index += 1
-
-                    await manager.send_event(websocket, NarrativeChunkEvent(
-                        type="NARRATIVE_CHUNK", content="", index=chunk_index, done=True
-                    ).model_dump(mode='json'))
+                    # Stream Narrative via Helper
+                    await stream_narrative(websocket, fact_packet)
 
                 elif action_type == "distribute_loot":
                     payload = DistributeLootAction(**data)
@@ -324,15 +510,50 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                             node=target_node,
                             world_context=world_ctx,
                         )
-                        chunk_index = 0
-                        async for text_chunk in chronos.generate_narrative(fact_packet):
-                            await manager.send_event(websocket, NarrativeChunkEvent(
-                                type="NARRATIVE_CHUNK", content=text_chunk, index=chunk_index, done=False
-                            ).model_dump(mode='json'))
-                            chunk_index += 1
-                        await manager.send_event(websocket, NarrativeChunkEvent(
-                            type="NARRATIVE_CHUNK", content="", index=chunk_index, done=True
-                        ).model_dump(mode='json'))
+                        await stream_narrative(websocket, fact_packet)
+
+                        # --- Encounter Auto-Start ---
+                        if fact_packet.get("encounter_triggered") and not tracker.has_started:
+                            cr_min, cr_max = _risk_to_cr(target_node.risk_level)
+                            monster_raw = get_random_monster_by_cr(cr_min, cr_max)
+                            if monster_raw:
+                                try:
+                                    stats = get_monster_stats(monster_raw["id"])
+                                except Exception:
+                                    stats = {
+                                        "name": monster_raw.get("name", "Unknown Creature"),
+                                        "ac": 10, "hp_max": 10, "cr": 0, "type": "unknown",
+                                        "dex_modifier": 0, "actions": [],
+                                        "resistances": [], "immunities": [],
+                                    }
+                                monster_instance_id = f"monster_{uuid.uuid4().hex[:8]}"
+                                async with tracker_lock:
+                                    tracker.add_combatant(
+                                        id=monster_instance_id,
+                                        name=stats["name"],
+                                        dex_modifier=stats.get("dex_modifier", 0),
+                                        is_player=False,
+                                        hp_max=stats["hp_max"],
+                                        ac=stats["ac"],
+                                        actions=stats.get("actions", []),
+                                        resistances=stats.get("resistances", []),
+                                        immunities=stats.get("immunities", []),
+                                        cr=stats.get("cr", 0),
+                                        type=stats.get("type", "unknown"),
+                                    )
+                                    tracker.start_encounter()
+
+                                await manager.send_event(websocket, LogEvent(
+                                    type="LOG",
+                                    message=f"⚔ Encounter! {stats['name']} (CR {stats.get('cr', 0)}) appears!",
+                                    level="warning",
+                                ).model_dump(mode='json'))
+                                await manager.send_event(websocket, InitiativeUpdateEvent(
+                                    type="INITIATIVE_UPDATE",
+                                    combatants=build_combatant_states(),
+                                ).model_dump(mode='json'))
+                                # If monster won initiative, process their first turn
+                                await _run_combat_loop(websocket, advance_first=False)
 
                     elif payload.interaction_type == "move":
                         # Legacy Grid Movement
@@ -422,28 +643,32 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                 elif action_type == "equip_item":
                     payload = EquipItemAction(**data)
                     try:
-                        equip_item(payload.character_id, payload.item_id, payload.slot)
-                        items = get_inventory(payload.character_id)
-                        event = InventoryUpdateEvent(
-                            type="INVENTORY_UPDATE",
-                            character_id=payload.character_id,
-                            items=[InventoryItemModel(**i) for i in items]
-                        )
-                        await manager.send_event(websocket, event.model_dump(mode='json'))
+                        # Use character_id from payload (frontend now sends dynamic ID)
+                        success = tracker.equip_item(payload.character_id, payload.item_id, payload.slot)
+                        if success:
+                            items = get_inventory(payload.character_id)
+                            event = InventoryUpdateEvent(
+                                type="INVENTORY_UPDATE",
+                                character_id=payload.character_id,
+                                items=[InventoryItemModel(**i) for i in items]
+                            )
+                            await manager.send_event(websocket, event.model_dump(mode='json'))
                     except Exception as e:
                         print(f"Equip error: {e}")
 
                 elif action_type == "unequip_item":
                     payload = UnequipItemAction(**data)
                     try:
-                        unequip_item(payload.character_id, payload.item_id)
-                        items = get_inventory(payload.character_id)
-                        event = InventoryUpdateEvent(
-                            type="INVENTORY_UPDATE",
-                            character_id=payload.character_id,
-                            items=[InventoryItemModel(**i) for i in items]
-                        )
-                        await manager.send_event(websocket, event.model_dump(mode='json'))
+                        # Use character_id from payload
+                        success = tracker.unequip_item(payload.character_id, payload.item_id)
+                        if success:
+                            items = get_inventory(payload.character_id)
+                            event = InventoryUpdateEvent(
+                                type="INVENTORY_UPDATE",
+                                character_id=payload.character_id,
+                                items=[InventoryItemModel(**i) for i in items]
+                            )
+                            await manager.send_event(websocket, event.model_dump(mode='json'))
                     except Exception as e:
                         print(f"Unequip error: {e}")
 
@@ -536,19 +761,7 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                     })
                     
                     # Chronos Narrative Stream
-                    chunk_index = 0
-                    async for text_chunk in chronos.generate_narrative(fact_packet):
-                        await manager.send_event(websocket, NarrativeChunkEvent(
-                            type="NARRATIVE_CHUNK",
-                            content=text_chunk,
-                            index=chunk_index,
-                            done=False
-                        ).model_dump(mode='json'))
-                        chunk_index += 1
-                    
-                    await manager.send_event(websocket, NarrativeChunkEvent(
-                        type="NARRATIVE_CHUNK", content="", index=chunk_index, done=True
-                    ).model_dump(mode='json'))
+                    await stream_narrative(websocket, fact_packet)
 
                     # System Log
                     log_msg = f"You attack {payload.target_id}: {'HIT' if result.hit else 'MISS'} ({result.damage_total} dmg)"
@@ -564,6 +777,9 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                         ],
                         fact_packet=fact_packet
                     ).model_dump(mode='json'))
+
+                    # Auto-advance: process monster turns until player's next turn
+                    await _run_combat_loop(websocket, advance_first=True)
 
                 elif action_type == "monster_attack":
                     payload = MonsterAttackAction(**data)
@@ -618,19 +834,7 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                         "action_name": monster_action.get("name", "attack"),
                         "is_player": False
                     })
-                    chunk_index = 0
-                    async for text_chunk in chronos.generate_narrative(fact_packet):
-                        await manager.send_event(websocket, NarrativeChunkEvent(
-                            type="NARRATIVE_CHUNK",
-                            content=text_chunk,
-                            index=chunk_index,
-                            done=False
-                        ).model_dump(mode='json'))
-                        chunk_index += 1
-                    
-                    await manager.send_event(websocket, NarrativeChunkEvent(
-                        type="NARRATIVE_CHUNK", content="", index=chunk_index, done=True
-                    ).model_dump(mode='json'))
+                    await stream_narrative(websocket, fact_packet)
 
                     # System Log
                     assert attacker is not None
@@ -648,7 +852,9 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                     ).model_dump(mode='json'))
 
                 elif action_type == "get_spells":
+                    payload = GetSpellsAction(**data)
                     # Send full spell registry for now (everyone knows everything in v1)
+                    # But we target the character_id requested
                     spells_list = get_all_spells()
                     spell_data_list = [
                         SpellData(
@@ -664,7 +870,7 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                     
                     await manager.send_event(websocket, SpellBookUpdateEvent(
                         type="SPELL_BOOK_UPDATE",
-                        character_id="player_1", # Hardcoded for now
+                        character_id=payload.character_id,
                         spells=spell_data_list
                     ).model_dump(mode='json'))
 
@@ -862,19 +1068,7 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                     })
 
                     # 3. Narrative Streaming
-                    chunk_index = 0
-                    async for text_chunk in chronos.generate_narrative(fact_packet):
-                        await manager.send_event(websocket, NarrativeChunkEvent(
-                            type="NARRATIVE_CHUNK",
-                            content=text_chunk,
-                            index=chunk_index,
-                            done=False
-                        ).model_dump(mode='json'))
-                        chunk_index += 1
-                    
-                    await manager.send_event(websocket, NarrativeChunkEvent(
-                        type="NARRATIVE_CHUNK", content="", index=chunk_index, done=True
-                    ).model_dump(mode='json'))
+                    await stream_narrative(websocket, fact_packet)
 
                     # 4. State Patch Event
                     await manager.send_event(websocket, StatePatchEvent(
@@ -900,6 +1094,9 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                     if requires_concentration:
                         async with tracker_lock:
                             tracker.add_condition(payload.attacker_id, "Concentrating")
+
+                    # Auto-resolve monster turns
+                    await _run_combat_loop(websocket, advance_first=True)
 
                 elif action_type == "roll_initiative":
                     payload = RollInitiativeAction(**data)
@@ -1019,6 +1216,33 @@ async def game_websocket(websocket: WebSocket, session_id: str, role: str = "pla
                     await manager.send_event(websocket, AckEvent(
                         type="ACK", status="ok", message=f"Widget {payload.widget_id} closed."
                     ).model_dump(mode='json'))
+
+                elif action_type == "narrative_action":
+                    # Frontend sends `type` key, not `action` — extract content directly
+                    content = data.get("content", "").strip()
+                    if not content:
+                        await manager.send_event(websocket, AckEvent(
+                            type="ACK", status="error", message="No content provided."
+                        ).model_dump(mode='json'))
+                        continue
+                    player = next((c for c in tracker.combatants if c.is_player), None)
+                    fact_packet = {
+                        "action_type": "narrative_action",
+                        "player_input": content,
+                        "player_name": player.name if player else "Adventurer",
+                        "location": combatant_positions.get(player.id if player else "", "Unknown"),
+                        "hp_current": player.hp_current if player else None,
+                        "hp_max": player.hp_max if player else None,
+                    }
+                    await stream_narrative(websocket, fact_packet)
+
+                elif action_type == "narrative_action":
+                    payload = NarrativeActionAction(**data)
+                    fact_packet = {
+                        "action_type": "narrative_action",
+                        "player_intent": payload.content,
+                    }
+                    await stream_narrative(websocket, fact_packet)
 
                 elif action_type == "list_saves":
                     saves = list_saves()

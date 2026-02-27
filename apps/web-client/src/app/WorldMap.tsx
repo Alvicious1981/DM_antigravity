@@ -7,7 +7,7 @@ import { MapPin, Info, Navigation, Skull, Castle, Trees, Mountain, User } from '
 import NodePanel from '../components/NodePanel';
 
 export default function WorldMap() {
-    const { mapState, requestMapData, sendAction, connected, combatants, triggerMapCapture } = useAgentState();
+    const { mapState, requestMapData, sendAction, connected, combatants, triggerMapCapture, shopInventory, openShop } = useAgentState();
     const { nodes, currentNodeId } = mapState;
     const [mapImageUrl, setMapImageUrl] = useState<string | null>(null);
     const [isCapturing, setIsCapturing] = useState(false);
@@ -255,6 +255,8 @@ export default function WorldMap() {
                         nodeId={selectedNode.id}
                         nodeName={selectedNode.name}
                         onClose={() => setSelectedNode(null)}
+                        shopInventory={shopInventory?.node_id === selectedNode.id ? shopInventory : null}
+                        onOpenShop={() => openShop(selectedNode.id)}
                     />
                 )}
             </AnimatePresence>

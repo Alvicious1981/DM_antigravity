@@ -14,6 +14,7 @@ interface VitalsPanelProps {
     ac: number;
     conditions?: (string | { condition_id: string })[];
     lastRoll?: { notation: string; total: number } | null;
+    gold?: number;
 }
 
 export default function VitalsPanel({
@@ -23,6 +24,7 @@ export default function VitalsPanel({
     ac,
     conditions = [],
     lastRoll,
+    gold,
 }: VitalsPanelProps) {
     const hpPercent = maxHp > 0 ? Math.max(0, Math.min(100, (hp / maxHp) * 100)) : 0;
 
@@ -49,9 +51,17 @@ export default function VitalsPanel({
                 >
                     {name}
                 </h3>
-                <div className="flex items-center gap-1 px-2 py-1 rounded bg-[#1a1a1d] border border-[#2a2a2d]">
-                    <span className="text-xs text-[#6b6b75]">AC</span>
-                    <span className="text-sm font-bold text-[#b0b0b8]">{ac}</span>
+                <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 px-2 py-1 rounded bg-[#1a1a1d] border border-[#2a2a2d]">
+                        <span className="text-xs text-[#6b6b75]">AC</span>
+                        <span className="text-sm font-bold text-[#b0b0b8]">{ac}</span>
+                    </div>
+                    {gold !== undefined && (
+                        <div className="flex items-center gap-1 px-2 py-1 rounded bg-[#1a1a1d] border border-[#c5a059]/30">
+                            <span className="text-xs text-[#c5a059]/70">gp</span>
+                            <span className="text-sm font-bold text-[#c5a059]">{gold}</span>
+                        </div>
+                    )}
                 </div>
             </div>
 

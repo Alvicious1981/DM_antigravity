@@ -165,12 +165,14 @@ def distribute_loot(target_character_id: str, item_ids: list[str]) -> list[dict]
     return created_items
 
 def _ensure_gold_table():
-    get_db().execute("""
+    db = get_db()
+    db.execute("""
         CREATE TABLE IF NOT EXISTS character_gold (
             character_id TEXT PRIMARY KEY,
             gold INTEGER NOT NULL DEFAULT 0
         )
     """)
+    db.commit()
 
 
 def add_gold(character_id: str, amount: int) -> int:

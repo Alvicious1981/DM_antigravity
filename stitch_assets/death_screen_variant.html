@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Pantalla de Muerte: El Destino Sellado</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&amp;family=Inter:wght@400;500;700&amp;family=MedievalSharp&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ea2a33",
+                        "background-light": "#2e1a1b", 
+                        "background-dark": "#0f0505",
+                        "stone-dark": "#1c1917",
+                        "stone-light": "#292524",
+                        "blood-red": "#8a1c22",
+                        "parchment": "#d4c5a9",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "gothic": ['"Cinzel Decorative"', "serif"],
+                        "medieval": ['"MedievalSharp"', "cursive"],
+                    },
+                    backgroundImage: {
+                        'stone-texture': "url('https://www.transparenttextures.com/patterns/dark-matter.png')",
+                        'paper-texture': "url('https://www.transparenttextures.com/patterns/cream-paper.png')",
+                    },
+                    boxShadow: {
+                        'glow-red': '0 0 20px rgba(234, 42, 51, 0.4)',
+                        'inner-stone': 'inset 0 0 20px rgba(0,0,0,0.8)',
+                    },
+                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+                },
+            },
+        }
+    </script>
+<style>/* Custom Utilities for Skeuomorphism */
+.text-glow {
+    text-shadow: 0 0 10px rgba(234, 42, 51, 0.8), 0 0 20px rgba(138, 28, 34, 0.6)
+    }
+.stone-slab {
+    background-color: #1c1917;
+    background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuB2cWL3P5n_nBHNFi4UBjMd2wyMLIIWaTXUDtHUCxCYZgXYKQDJAu8vI3RFHPbqUtUxH1of9Uj6Iba6vri7ouOlDOJBzAKQ_S_XqTC0ysQt72qioX7lJNkK4w1OxDnlctQcZ1BTQZZ_1RL4SliYZ5DeEr0pzmXNhCQPpkk0OQWZPBzVKom4L-7O61OLjkvCjNfajd3M_8sDEAr1QN5gWRi424laRWeUKZP4Gc0751f8FmG4LUMLkKMRJQtNt20Qx3E7S6XkZlgrbw);
+    box-shadow: inset 2px 2px 5px rgba(255, 255, 255, 0.1), inset -2px -2px 5px rgba(0, 0, 0, 0.8), 5px 5px 15px rgba(0, 0, 0, 0.9);
+    border: 1px solid #44403c
+    }
+.stone-slab:active {
+    box-shadow: inset 4px 4px 10px rgba(0, 0, 0, 0.9), inset -2px -2px 5px rgba(255, 255, 255, 0.05);
+    transform: translatey(2px)
+    }
+.parchment-bg {
+    background-color: #d6cfc2;
+    background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuCG2dUXGwaPo_ckE5vVIRf8Vf28UmxpHWKYiBkzFXYlnYnIT-3xa3K6Mutu3TKqcj_8IXUkYXPLnYDp29qQcHN_uk2L-RnKaF1Jr0suPMnS2CS0ULhtmW-PSQwVL_CYtysFBXKGOflQU43gPr401oSifr9LYzE9Wkx3Hv8UpRPQjBeYMob6Om1YQOoVUI1C8_du-HUxIqj_c14BcIrs_1fSOe1106kXU55liMk0uptKK_sSZ-SHFXaVDIpjt0SjKrsv1pIU_FrPHQ);
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.8), inset 0 0 60px rgba(66, 32, 6, 0.4)
+    }
+.fog-overlay {
+    background: radial-gradient(circle, transparent 20%, #0f0505 100%)
+    }
+.cracked-border {
+    border: 2px solid #57534e;
+    position: relative
+    }
+.cracked-border::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 1px solid rgba(0, 0, 0, 0.8);
+    pointer-events: none
+    }</style>
+</head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen text-slate-100 font-display overflow-x-hidden relative selection:bg-blood-red selection:text-white">
+<!-- Background Image Layer -->
+<div class="fixed inset-0 z-0">
+<img alt="Desolate foggy battlefield with dark atmosphere" class="w-full h-full object-cover opacity-40 grayscale contrast-125 brightness-50" data-alt="Desolate foggy battlefield background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAW8qp_Jvbr4tsGlk-xHrelw4YF1rvi9WCZwJ1RPYrsTVnuMQyU4FMMWPFijoxL0jnD2-g9PrdPzTfr7ievqGOO2gbEby-4zexJmm3F-3wakDiaKyOAmx7Sx34OAAFXWiq3tYzAiCrodvsi-1GebycqTi-MDS86x3Ab8R9DaypYgrTZtw5SVPYnwi_tJhuq9FsKN8I1sKBVsZIxgrvJ_6YO46IaPx4_E8PWSvV1nAniSopTilzfb_vWQtyWYg0qxjMY-XIs2hSX9Q"/>
+<div class="absolute inset-0 bg-gradient-to-b from-[#0f0505]/90 via-[#0f0505]/60 to-[#0f0505]/90"></div>
+<div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30 animate-pulse"></div>
+</div>
+<!-- Main Content Container -->
+<div class="relative z-10 flex min-h-screen flex-col items-center justify-center p-4 sm:p-8">
+<!-- Header / Tombstone Section -->
+<div class="w-full max-w-4xl text-center mb-8 relative">
+<div class="inline-block relative py-8 px-12 stone-slab rounded-t-full border-b-4 border-blood-red/50 shadow-glow-red">
+<span class="material-symbols-outlined absolute top-4 left-1/2 -translate-x-1/2 text-4xl text-stone-500/50">skull</span>
+<h1 class="font-gothic font-black text-4xl md:text-6xl lg:text-7xl text-primary tracking-widest text-glow uppercase leading-tight mt-4">
+                    Tu Destino <br/> Ha Sido Sellado
+                </h1>
+<div class="h-px w-3/4 mx-auto bg-gradient-to-r from-transparent via-blood-red to-transparent mt-6 mb-2"></div>
+<p class="font-medieval text-stone-400 text-lg md:text-xl tracking-wider italic">
+                    "La oscuridad te reclama una vez más..."
+                </p>
+</div>
+</div>
+<!-- Stats / Parchment Section -->
+<div class="w-full max-w-[960px] relative perspective-1000 mb-12">
+<!-- Parchment Container -->
+<div class="parchment-bg relative rounded-sm p-8 md:p-12 rotate-1 transform mx-auto max-w-3xl text-slate-900 shadow-2xl border-t-8 border-b-8 border-transparent" style="border-image: url('https://www.transparenttextures.com/patterns/wood-pattern.png') 30 round;">
+<!-- Burnt Edges Effect (Simulated) -->
+<div class="absolute inset-0 shadow-[inset_0_0_40px_rgba(78,42,16,0.6)] pointer-events-none rounded-sm"></div>
+<h2 class="font-medieval text-3xl text-center text-[#5c2828] font-bold mb-8 border-b-2 border-[#5c2828]/30 pb-4 mx-8">
+                    Últimas Memorias
+                </h2>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
+<!-- Stat Card 1 -->
+<div class="flex flex-col items-center p-4 border-2 border-[#8b6e4e]/30 rounded bg-[#e8e1d3]/60 shadow-sm backdrop-blur-sm">
+<span class="material-symbols-outlined text-4xl text-[#8a1c22] mb-2">swords</span>
+<p class="text-[#5c4838] text-sm font-semibold uppercase tracking-wider font-display">Enemigos Abatidos</p>
+<p class="text-[#2e1a1b] text-3xl font-bold font-medieval mt-1">42</p>
+</div>
+<!-- Stat Card 2 -->
+<div class="flex flex-col items-center p-4 border-2 border-[#8b6e4e]/30 rounded bg-[#e8e1d3]/60 shadow-sm backdrop-blur-sm">
+<span class="material-symbols-outlined text-4xl text-[#d97706] mb-2">savings</span>
+<p class="text-[#5c4838] text-sm font-semibold uppercase tracking-wider font-display">Oro Recolectado</p>
+<p class="text-[#2e1a1b] text-3xl font-bold font-medieval mt-1">1,250</p>
+</div>
+<!-- Stat Card 3 -->
+<div class="flex flex-col items-center p-4 border-2 border-[#8b6e4e]/30 rounded bg-[#e8e1d3]/60 shadow-sm backdrop-blur-sm">
+<span class="material-symbols-outlined text-4xl text-[#4b5563] mb-2">hourglass_bottom</span>
+<p class="text-[#5c4838] text-sm font-semibold uppercase tracking-wider font-display">Tiempo de Vida</p>
+<p class="text-[#2e1a1b] text-3xl font-bold font-medieval mt-1">3h 15m</p>
+</div>
+<!-- Stat Card 4 -->
+<div class="flex flex-col items-center p-4 border-2 border-[#8b6e4e]/30 rounded bg-[#e8e1d3]/60 shadow-sm backdrop-blur-sm">
+<span class="material-symbols-outlined text-4xl text-[#4f46e5] mb-2">workspace_premium</span>
+<p class="text-[#5c4838] text-sm font-semibold uppercase tracking-wider font-display">Nivel Alcanzado</p>
+<p class="text-[#2e1a1b] text-3xl font-bold font-medieval mt-1">12</p>
+</div>
+</div>
+<!-- Decorative Ink Splatter -->
+<div class="absolute bottom-4 right-8 w-24 h-24 bg-red-900/10 rounded-full blur-xl pointer-events-none mix-blend-multiply"></div>
+<div class="absolute top-12 left-4 w-16 h-16 bg-black/5 rounded-full blur-lg pointer-events-none mix-blend-multiply"></div>
+</div>
+</div>
+<!-- Action Buttons Section -->
+<div class="flex flex-col md:flex-row gap-6 md:gap-12 w-full max-w-4xl justify-center items-center mt-4">
+<button class="group relative w-full md:w-auto min-w-[280px]">
+<div class="absolute inset-0 bg-primary/20 blur-md rounded-lg group-hover:bg-primary/40 transition-all duration-500"></div>
+<div class="stone-slab relative flex items-center justify-between px-6 py-5 rounded cursor-pointer transform transition-transform duration-200 group-hover:-translate-y-1 group-active:translate-y-1 border-l-4 border-r-4 border-l-stone-600 border-r-stone-600">
+<span class="absolute inset-0 border border-white/10 rounded pointer-events-none"></span>
+<div class="flex flex-col items-start mr-4">
+<span class="font-medieval text-xl text-primary group-hover:text-red-400 transition-colors uppercase font-bold tracking-wider drop-shadow-md">Reintentar</span>
+<span class="text-xs text-stone-400 font-display">Desde el Último Suspiro</span>
+</div>
+<span class="material-symbols-outlined text-3xl text-primary group-hover:text-red-400 group-hover:rotate-180 transition-all duration-500">replay</span>
+<!-- Crack Effect -->
+<svg class="absolute top-0 right-10 w-12 h-12 opacity-30 pointer-events-none" fill="none" stroke="black" stroke-width="1" viewbox="0 0 100 100">
+<path d="M10,10 L30,40 L20,70 L50,90"></path>
+</svg>
+</div>
+</button>
+<button class="group relative w-full md:w-auto min-w-[280px]">
+<div class="absolute inset-0 bg-stone-800/50 blur-md rounded-lg group-hover:bg-stone-700/60 transition-all duration-500"></div>
+<div class="bg-stone-900 border border-stone-700 relative flex items-center justify-between px-6 py-5 rounded cursor-pointer transform transition-transform duration-200 group-hover:-translate-y-1 group-active:translate-y-1 shadow-[inset_0_0_20px_rgba(0,0,0,1)] hover:border-stone-500">
+<span class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-leather.png')] opacity-50 rounded"></span>
+<div class="relative z-10 flex flex-col items-start mr-4">
+<span class="font-medieval text-xl text-stone-300 group-hover:text-white transition-colors uppercase font-bold tracking-wider drop-shadow-md">Regresar</span>
+<span class="text-xs text-stone-500 font-display group-hover:text-stone-400">Al Vacío (Menú Principal)</span>
+</div>
+<span class="relative z-10 material-symbols-outlined text-3xl text-stone-500 group-hover:text-white transition-all duration-500">logout</span>
+</div>
+</button>
+</div>
+<!-- Footer Info -->
+<div class="absolute bottom-4 right-6 flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-sm text-stone-500">settings</span>
+<p class="text-stone-600 font-mono text-xs">Engine v1.4.2</p>
+</div>
+</div>
+<!-- Vignette Overlay -->
+<div class="fixed inset-0 pointer-events-none z-20 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.4)_50%,rgba(0,0,0,0.95)_100%)]"></div>
+<!-- Particle/Ash placeholders (Static CSS representation) -->
+<div class="fixed top-1/4 left-1/4 w-1 h-1 bg-white/20 rounded-full blur-[1px] pointer-events-none"></div>
+<div class="fixed top-3/4 left-1/3 w-2 h-2 bg-red-500/10 rounded-full blur-[2px] pointer-events-none"></div>
+<div class="fixed top-1/2 right-1/4 w-1.5 h-1.5 bg-gray-400/20 rounded-full blur-[1px] pointer-events-none"></div>
+<div class="fixed bottom-1/3 right-1/3 w-1 h-1 bg-white/10 rounded-full pointer-events-none"></div>
+</body></html>

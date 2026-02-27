@@ -5,15 +5,17 @@ import { LoadGameScreen } from '../components/stitch/LoadGameScreen';
 import { HighFidelityCharacterCreator as CharacterCreator } from '../components/stitch/HighFidelityCharacterCreator';
 import { GameplayHud } from '../components/stitch/GameplayHud';
 import { DeathScreen } from '../components/stitch/DeathScreen';
+import { LevelUpScreen } from '../components/stitch/LevelUpScreen';
 import { useAgentState } from '../hooks/useAgentState';
 
-type ViewState = 'MENU' | 'LOAD' | 'CREATOR' | 'GAME' | 'DEAD';
+type ViewState = 'MENU' | 'LOAD' | 'CREATOR' | 'GAME' | 'DEAD' | 'LEVEL_UP';
 
 // Inner component so it can access useAgentState after session is set
-function GameView({ session, onDead, onQuit }: {
+function GameView({ session, onDead, onQuit, onLevelUp }: {
   session: any;
   onDead: () => void;
   onQuit: () => void;
+  onLevelUp: () => void;
 }) {
   const { combatants, sendAction, connect, connected } = useAgentState();
 
@@ -39,13 +41,14 @@ function GameView({ session, onDead, onQuit }: {
   };
 
   const handleMessage = (message: string) => {
-    sendAction({ type: 'narrative_action', content: message });
+    sendAction({ action: 'narrative_action', content: message });
   };
 
   return (
     <GameplayHud
       onAction={handleAction}
       onSendMessage={handleMessage}
+      onLevelUp={onLevelUp}
     />
   );
 }
@@ -93,6 +96,7 @@ export default function Home() {
           name: characterData.name,
           class_id: characterData.classId,
           background_id: characterData.backgroundId,
+          race_id: characterData.raceId,
         }),
       });
       const data = await res.json();
@@ -160,6 +164,13 @@ export default function Home() {
           session={session}
           onDead={() => setView('DEAD')}
           onQuit={() => setView('MENU')}
+          onLevelUp={() => setView('LEVEL_UP')}
+        />
+      )}
+
+      {view === 'LEVEL_UP' && (
+        <LevelUpScreen
+          onConfirm={() => setView('GAME')}
         />
       )}
 

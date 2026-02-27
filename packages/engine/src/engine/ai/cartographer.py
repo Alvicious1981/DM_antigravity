@@ -102,6 +102,7 @@ class CartographerClient:
 
         # Encounter injection
         triggered = force_encounter or self.should_trigger_encounter(node)
+        packet["encounter_triggered"] = triggered
         if triggered:
             ec: EncounterContext = NarrativeHooks.generate_encounter_context(biome=biome)
             packet.update(ec.to_fact_packet_fragment())

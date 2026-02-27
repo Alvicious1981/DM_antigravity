@@ -4,11 +4,13 @@ Fetches and deserializes game mechanics from the single source of truth.
 """
 
 import json
+import random
 from functools import lru_cache
 from httpx import HTTPError  # Not really needed for sqlite, just used standard exc
 from fastapi import HTTPException
 import re
 from .db import get_db
+from .db_utils import get_json_extract_sql
 
 @lru_cache(maxsize=128)
 
@@ -27,11 +29,13 @@ def get_srd_mechanic(mechanic_id: str, lang: str = "en") -> dict:
         # FALLBACK: Try searching by name if ID fails (Context Precision / Recall improvement)
         # Often LLMs or user input use human-readable names instead of slugified IDs
         search_term = mechanic_id.replace("_", " ").lower()
+        # Use parity-safe JSON extraction
+        name_extract = get_json_extract_sql("data_json", "$.name")
         row = db.execute(
-            """
+            f"""
             SELECT id, type, data_json, data_es 
             FROM srd_mechanic 
-            WHERE json_extract(data_json, '$.name') COLLATE NOCASE = ? 
+            WHERE {name_extract} COLLATE NOCASE = ? 
             OR id LIKE ?
             LIMIT 1
             """,
@@ -284,6 +288,44 @@ def get_monster_stats(monster_id: str) -> dict:
 
     # Apply Errata / Patches
     return _apply_monster_errata(monster_id, stats)
+
+def get_random_monster_by_cr(min_cr: float, max_cr: float):
+    """
+    Pick a random monster from the SRD whose CR falls within [min_cr, max_cr].
+    Returns raw monster data dict with an added 'id' key, or None if not found.
+    """
+    db = get_db()
+    rows = db.execute(
+        """
+        SELECT id, data_json FROM srd_mechanic
+        WHERE type = 'monster'
+        AND CAST(json_extract(data_json, '$.challenge_rating') AS REAL) BETWEEN ? AND ?
+        ORDER BY RANDOM()
+        LIMIT 1
+        """,
+        (min_cr, max_cr)
+    ).fetchall()
+
+    if not rows:
+        # Fallback: any CR 0-1 monster
+        rows = db.execute(
+            """
+            SELECT id, data_json FROM srd_mechanic
+            WHERE type = 'monster'
+            AND CAST(json_extract(data_json, '$.challenge_rating') AS REAL) BETWEEN 0 AND 1
+            ORDER BY RANDOM()
+            LIMIT 1
+            """
+        ).fetchall()
+
+    if not rows:
+        return None
+
+    row = rows[0]
+    data = json.loads(row["data_json"])
+    data["id"] = row["id"]
+    return data
+
 
 def _apply_monster_errata(monster_id: str, stats: dict) -> dict:
     """Apply hardcoded fixes for specific monsters based on Errata."""

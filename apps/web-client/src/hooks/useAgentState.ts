@@ -168,7 +168,24 @@ export interface MapDataEvent {
     current_node_id: string;
 }
 
-// ... existing interfaces ...
+export interface GoldUpdate {
+    type: "GOLD_UPDATE";
+    character_id: CharacterId;
+    gold: number;
+    delta: number;
+}
+
+export interface ShopItem {
+    rarity: string;
+    buy_price: number;
+}
+
+export interface ShopInventory {
+    node_id: string;
+    node_type: string;
+    has_shop: boolean;
+    items: ShopItem[];
+}
 
 export interface SaveInfo {
     save_id: string;
@@ -182,6 +199,8 @@ export interface SaveInfo {
 export interface GameState {
     connected: boolean;
     sessionId: SessionId | null;
+    /** CharacterId provisioned by the server on CONNECTION_ESTABLISHED. Never hardcode "player_1". */
+    myCharacterId: CharacterId | null;
     role: "dm" | "player";
     narrative: string[];
     currentNarrative: string;
@@ -207,18 +226,17 @@ export interface GameState {
     visitedNodeIds: string[];
     screenShake: boolean;
     selectedTargetId: string | null;
+    gold: number;
+    shopInventory: ShopInventory | null;
 }
 
-export interface SaveInfo {
-    id: string;
-    timestamp: string;
-    characterNames: string[];
-}
+// SaveInfo is now defined above to match the rich backend schema
 
 export function useAgentState(wsUrl?: string) {
     const [gameState, setGameState] = useState<GameState>({
         connected: false,
         sessionId: null,
+        myCharacterId: null,
         role: "player",
         narrative: [],
         currentNarrative: "",
@@ -243,7 +261,22 @@ export function useAgentState(wsUrl?: string) {
         visitedNodeIds: [],
         screenShake: false,
         selectedTargetId: null,
+        gold: 0,
+        shopInventory: null,
     });
+
+    /**
+     * Resolve the authoritative CharacterId for the current player.
+     * Priority: server-provisioned myCharacterId > first isPlayer combatant > session-scoped fallback.
+     * NEVER hardcode "player_1".
+     */
+    const getMyCharacterId = useCallback((): string => {
+        if (gameState.myCharacterId) return gameState.myCharacterId;
+        const playerCombatant = gameState.combatants.find(c => c.isPlayer);
+        if (playerCombatant) return playerCombatant.id;
+        // Last-resort: derive from session so at least distinct per session
+        return sessionIdRef.current ? `player_${sessionIdRef.current}` : "player_unknown";
+    }, [gameState.myCharacterId, gameState.combatants]);
 
     const wsRef = useRef<WebSocket | null>(null);
     const narrativeBufferRef = useRef<string>("");
@@ -254,11 +287,14 @@ export function useAgentState(wsUrl?: string) {
 
     const onConnectionEstablished = useCallback((event: AgUiEvent) => {
         reconnectAttemptsRef.current = 0;
+        // Server provisions character_id on CONNECTION_ESTABLISHED — store it as source of truth
+        const serverCharacterId = event.character_id as string | undefined;
         setGameState(prev => ({
             ...prev,
             connected: true,
             sessionId: asSessionId(event.session_id as string),
-            role: (event.role as "dm" | "player") || "player"
+            role: (event.role as "dm" | "player") || "player",
+            myCharacterId: serverCharacterId ? (serverCharacterId as CharacterId) : prev.myCharacterId,
         }));
     }, []);
 
@@ -267,7 +303,11 @@ export function useAgentState(wsUrl?: string) {
             const sessionId = asSessionId(id);
             sessionIdRef.current = id;
             roleRef.current = role;
-            let url = wsUrl || `ws://127.0.0.1:8000/ws/game/${sessionId}`;
+            let url = wsUrl;
+            if (!url) {
+                const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+                url = `ws://${host}:8000/ws/game/${sessionId}`;
+            }
 
             // Append role and token if provided
             const params = new URLSearchParams();
@@ -342,13 +382,13 @@ export function useAgentState(wsUrl?: string) {
         };
     }, []);
 
-    const getSpells = () => {
+    const getSpells = useCallback(() => {
         if (!wsRef.current) return;
         wsRef.current.send(JSON.stringify({
             type: "get_spells",
-            character_id: "player_1"
+            character_id: getMyCharacterId()
         }));
-    };
+    }, [getMyCharacterId]);
 
     const listSaves = useCallback(() => {
         if (!wsRef.current) return;
@@ -359,13 +399,12 @@ export function useAgentState(wsUrl?: string) {
 
     const requestMapData = useCallback(() => {
         if (!wsRef.current) return;
-        const playerId = gameState.combatants.find(c => c.isPlayer)?.id || "player_1";
         wsRef.current.send(JSON.stringify({
             action: "map_interaction",
-            character_id: playerId,
+            character_id: getMyCharacterId(),
             interaction_type: "request_data"
         }));
-    }, [gameState.combatants]);
+    }, [getMyCharacterId]);
 
     const removeToast = useCallback((index: number) => {
         setGameState((prev) => ({
@@ -393,50 +432,54 @@ export function useAgentState(wsUrl?: string) {
     }, []);
 
     const equipItem = useCallback((itemId: string, slot: string) => {
-        const charId = gameState.combatants.find(c => c.isPlayer)?.id || "player_1";
         wsRef.current?.send(JSON.stringify({
             action: "equip_item",
-            character_id: charId,
+            character_id: getMyCharacterId(),
             item_id: itemId,
             slot: slot
         }));
-    }, [gameState.combatants]);
+    }, [getMyCharacterId]);
 
     const unequipItem = useCallback((itemId: string) => {
-        const charId = gameState.combatants.find(c => c.isPlayer)?.id || "player_1";
         wsRef.current?.send(JSON.stringify({
             action: "unequip_item",
-            character_id: charId,
+            character_id: getMyCharacterId(),
             item_id: itemId
         }));
-    }, [gameState.combatants]);
+    }, [getMyCharacterId]);
+
+    const openShop = useCallback((nodeId: string) => {
+        wsRef.current?.send(JSON.stringify({
+            action: "get_shop",
+            node_id: nodeId,
+            character_id: getMyCharacterId(),
+        }));
+    }, [getMyCharacterId]);
 
     const setSelectedTarget = useCallback((targetId: string | null) => {
         setGameState(prev => ({ ...prev, selectedTargetId: targetId }));
     }, []);
 
     const attackTarget = useCallback((targetId: string, weaponId?: string) => {
-        const charId = gameState.combatants.find(c => c.isPlayer)?.id || "player_1";
         const payload: Record<string, unknown> = {
             action: "attack",
-            attacker_id: charId,
+            attacker_id: getMyCharacterId(),
             target_id: targetId
         };
         if (weaponId) {
             payload.weapon_id = weaponId;
         }
         wsRef.current?.send(JSON.stringify(payload));
-    }, [gameState.combatants]);
+    }, [getMyCharacterId]);
 
     const castSpell = useCallback((targetId: string, spellId: string) => {
-        const charId = gameState.combatants.find(c => c.isPlayer)?.id || "player_1";
         wsRef.current?.send(JSON.stringify({
             action: "cast_spell",
-            attacker_id: charId,
+            attacker_id: getMyCharacterId(),
             target_id: targetId,
             spell_id: spellId
         }));
-    }, [gameState.combatants]);
+    }, [getMyCharacterId]);
 
     return {
         ...gameState,
@@ -454,5 +497,6 @@ export function useAgentState(wsUrl?: string) {
         setSelectedTarget,
         attackTarget,
         castSpell,
+        openShop,
     };
 }

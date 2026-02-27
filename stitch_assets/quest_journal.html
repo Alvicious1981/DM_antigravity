@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Diario de Historia - Dragons and Dungeons</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;family=Noto+Sans:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#eca413", // Gold/Amber for wax seals and highlights
+                        "primary-dark": "#b0780a",
+                        "danger": "#8a1c1c", // Dried blood red
+                        "ink": "#2b2620", // Dark brown ink
+                        "ink-light": "#544b3b", // Faded ink
+                        "paper": "#e3dccb", // Main page color
+                        "paper-dark": "#d6cbb5", // Darker page areas/shadows
+                        "leather": "#1a1310", // Background leather
+                        "leather-light": "#2c221a", // Lighter leather details
+                    },
+                    fontFamily: {
+                        "display": ["Newsreader", "serif"],
+                        "sans": ["Noto Sans", "sans-serif"],
+                    },
+                    backgroundImage: {
+                        'paper-texture': "url('https://www.transparenttextures.com/patterns/aged-paper.png')",
+                        'leather-texture': "url('https://www.transparenttextures.com/patterns/dark-leather.png')",
+                    },
+                    boxShadow: {
+                        'book': '0 20px 50px -12px rgba(0, 0, 0, 0.9)',
+                        'page-left': 'inset -15px 0 20px -10px rgba(0,0,0,0.1)',
+                        'page-right': 'inset 15px 0 20px -10px rgba(0,0,0,0.1)',
+                        'seam': 'inset 0 0 30px rgba(0,0,0,0.3)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for the journal list */
+        .journal-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .journal-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .journal-scroll::-webkit-scrollbar-thumb {
+            background-color: #544b3b;
+            border-radius: 20px;
+        }
+        
+        /* Drop cap style */
+        .drop-cap::first-letter {
+            float: left;
+            font-size: 3.5rem;
+            line-height: 0.8;
+            font-weight: bold;
+            color: #2b2620;
+            margin-right: 0.5rem;
+            margin-top: 0.1rem;
+            font-family: 'Newsreader', serif;
+        }
+
+        /* Handwritten underline effect */
+        .handwritten-underline {
+            background-image: linear-gradient(to right, #2b2620 33%, rgba(255,255,255,0) 0%);
+            background-position: bottom;
+            background-size: 8px 1px;
+            background-repeat: repeat-x;
+        }
+
+        /* Rough edge effect using clip-path (optional, for supported browsers) */
+        .torn-paper {
+            clip-path: polygon(0% 0%, 100% 2%, 98% 15%, 100% 25%, 97% 40%, 100% 55%, 98% 70%, 100% 85%, 99% 100%, 0% 98%);
+        }
+    </style>
+</head>
+<body class="bg-leather text-paper font-display overflow-hidden h-screen flex flex-col selection:bg-primary/30 selection:text-ink">
+<!-- Background Texture Overlay -->
+<div class="fixed inset-0 pointer-events-none opacity-40 mix-blend-overlay bg-leather-texture z-0"></div>
+<!-- Top Navigation (Contextual Game Menu) -->
+<header class="relative z-10 w-full border-b border-[#393328] bg-[#181611]/90 backdrop-blur-sm px-6 py-3 shadow-lg">
+<div class="max-w-7xl mx-auto flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="size-8 text-primary">
+<span class="material-symbols-outlined !text-[32px]">auto_stories</span>
+</div>
+<h1 class="text-white text-xl font-bold tracking-wide font-display">Diario de Historia</h1>
+</div>
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-[#b9b09d] hover:text-primary transition-colors text-sm font-medium tracking-wide uppercase" href="#">Inventario</a>
+<a class="text-[#b9b09d] hover:text-primary transition-colors text-sm font-medium tracking-wide uppercase" href="#">Mapa</a>
+<a class="text-[#b9b09d] hover:text-primary transition-colors text-sm font-medium tracking-wide uppercase" href="#">Habilidades</a>
+<a class="text-primary text-sm font-bold tracking-wide uppercase border-b-2 border-primary pb-1" href="#">Gesta</a>
+<a class="text-[#b9b09d] hover:text-primary transition-colors text-sm font-medium tracking-wide uppercase" href="#">Bestiario</a>
+</nav>
+<div class="flex gap-3">
+<button class="flex items-center justify-center size-9 rounded bg-[#393328] text-[#b9b09d] hover:text-white hover:bg-[#4a4233] transition-colors">
+<span class="material-symbols-outlined !text-[20px]">settings</span>
+</button>
+<button class="flex items-center justify-center size-9 rounded bg-[#393328] text-[#b9b09d] hover:text-white hover:bg-[#8a1c1c] transition-colors">
+<span class="material-symbols-outlined !text-[20px]">close</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Main Content Area: The Open Book -->
+<main class="relative z-10 flex-1 flex items-center justify-center p-4 lg:p-10">
+<!-- Book Container -->
+<div class="relative w-full max-w-6xl h-full max-h-[850px] bg-[#2c221a] rounded-lg shadow-book flex overflow-hidden border border-[#3e3226]">
+<!-- Book Binding/Spine Effect -->
+<div class="absolute left-1/2 top-0 bottom-0 w-8 -ml-4 bg-gradient-to-r from-black/40 via-transparent to-black/40 z-20 pointer-events-none"></div>
+<div class="absolute left-1/2 top-0 bottom-0 w-[1px] bg-[#1a1310] z-20 opacity-50"></div>
+<!-- Left Page: Quest Index -->
+<section class="w-1/2 bg-paper relative flex flex-col shadow-page-left group">
+<!-- Paper Texture Overlay -->
+<div class="absolute inset-0 pointer-events-none opacity-60 mix-blend-multiply bg-paper-texture"></div>
+<!-- Content -->
+<div class="relative z-10 p-8 h-full flex flex-col">
+<!-- Decorative Header -->
+<div class="flex flex-col items-center mb-6 border-b-2 border-ink/20 pb-4">
+<h2 class="text-3xl font-bold text-ink tracking-tight">Crónicas</h2>
+<span class="text-ink-light text-sm italic mt-1 font-serif">Registro de hazañas y penurias</span>
+</div>
+<!-- Filter Tabs (Skeuomorphic) -->
+<div class="flex space-x-4 mb-6 px-2">
+<button class="relative group/tab">
+<span class="relative z-10 text-ink font-bold text-lg border-b-2 border-primary pb-1">Misiones Activas</span>
+<div class="absolute -bottom-1 left-0 w-full h-[2px] bg-primary scale-x-100 transition-transform origin-left"></div>
+</button>
+<button class="relative group/tab">
+<span class="relative z-10 text-ink-light font-medium text-lg hover:text-ink transition-colors">Relatos Completados</span>
+</button>
+</div>
+<!-- Quest List -->
+<div class="journal-scroll flex-1 overflow-y-auto pr-2 space-y-4">
+<!-- Active Item -->
+<div class="relative group cursor-pointer">
+<div class="absolute inset-0 bg-ink/5 transform -skew-x-1 rounded torn-paper opacity-100 transition-opacity"></div>
+<div class="relative p-4 flex gap-4 items-start border-l-4 border-primary pl-3">
+<!-- Wax Seal Icon -->
+<div class="shrink-0 mt-1 text-primary drop-shadow-md">
+<span class="material-symbols-outlined !text-[28px] drop-shadow-sm" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<div class="flex-1">
+<h3 class="text-xl font-bold text-ink leading-tight group-hover:underline decoration-ink/50 decoration-2 underline-offset-2">La Bestia de Blackwood</h3>
+<p class="text-sm text-ink-light mt-1 italic font-serif">Bosque de los Lamentos</p>
+<div class="mt-2 flex items-center gap-2">
+<span class="text-xs font-bold text-paper bg-ink px-2 py-0.5 rounded-sm uppercase tracking-wider">Principal</span>
+<span class="text-xs text-ink-light">Actualizado: Hace 2 días</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="relative group cursor-pointer hover:bg-ink/5 transition-colors p-2 rounded-sm">
+<div class="relative p-2 flex gap-4 items-start border-l-4 border-transparent pl-3 opacity-70 group-hover:opacity-100 transition-opacity">
+<!-- Wax Seal Icon (Red for danger) -->
+<div class="shrink-0 mt-1 text-danger drop-shadow-md">
+<span class="material-symbols-outlined !text-[28px]" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+</div>
+<div class="flex-1">
+<h3 class="text-lg font-bold text-ink leading-tight">Susurros en la Cripta</h3>
+<p class="text-sm text-ink-light mt-1 italic font-serif">Catacumbas Reales</p>
+</div>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="relative group cursor-pointer hover:bg-ink/5 transition-colors p-2 rounded-sm">
+<div class="relative p-2 flex gap-4 items-start border-l-4 border-transparent pl-3 opacity-70 group-hover:opacity-100 transition-opacity">
+<!-- Wax Seal Icon (Neutral) -->
+<div class="shrink-0 mt-1 text-ink-light/50">
+<span class="material-symbols-outlined !text-[28px]">pending</span>
+</div>
+<div class="flex-1">
+<h3 class="text-lg font-bold text-ink leading-tight">Suministros de Alquimia</h3>
+<p class="text-sm text-ink-light mt-1 italic font-serif">Aldea de Piedra</p>
+</div>
+</div>
+</div>
+<!-- Item 4 -->
+<div class="relative group cursor-pointer hover:bg-ink/5 transition-colors p-2 rounded-sm">
+<div class="relative p-2 flex gap-4 items-start border-l-4 border-transparent pl-3 opacity-70 group-hover:opacity-100 transition-opacity">
+<div class="shrink-0 mt-1 text-ink-light/50">
+<span class="material-symbols-outlined !text-[28px]">pending</span>
+</div>
+<div class="flex-1">
+<h3 class="text-lg font-bold text-ink leading-tight">La Espada Rota</h3>
+<p class="text-sm text-ink-light mt-1 italic font-serif">Herrería Antigua</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Decoration -->
+<div class="mt-4 flex justify-center opacity-40">
+<span class="material-symbols-outlined text-ink !text-[24px]">stylus</span>
+</div>
+</div>
+</section>
+<!-- Right Page: Quest Details -->
+<section class="w-1/2 bg-paper relative flex flex-col shadow-page-right">
+<!-- Paper Texture Overlay -->
+<div class="absolute inset-0 pointer-events-none opacity-60 mix-blend-multiply bg-paper-texture"></div>
+<!-- Content -->
+<div class="relative z-10 p-8 h-full overflow-y-auto journal-scroll">
+<!-- Sketch/Illustration Area -->
+<div class="w-full h-48 mb-6 relative border-4 border-double border-ink/20 p-1 bg-paper-dark transform rotate-1 shadow-sm">
+<!-- Illustration Placeholder -->
+<div class="w-full h-full bg-[#2a2a2a] overflow-hidden relative grayscale contrast-125 sepia-[.3]">
+<!-- Using a gradient to simulate a sketch if no image loads, but here using a div with background style as requested -->
+<div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1445543949571-ffc3e0e2f55e?q=80&amp;w=2069&amp;auto=format&amp;fit=crop')] bg-cover bg-center opacity-80 mix-blend-multiply" data-alt="Dark forest sketch charcoal drawing style"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+</div>
+<!-- Caption -->
+<div class="absolute bottom-2 right-4 text-white/90 text-xs italic font-serif drop-shadow-md">Fig 1. Avistamiento en el linde norte.</div>
+<!-- Tape/Pin effect -->
+<div class="absolute -top-3 left-1/2 -translate-x-1/2 w-24 h-6 bg-[#e8dec0] opacity-80 rotate-1 shadow-sm border border-black/10"></div>
+</div>
+<!-- Quest Title -->
+<div class="mb-6 text-center">
+<h1 class="text-4xl font-extrabold text-ink mb-2 tracking-tight" style="font-feature-settings: 'swsh' 1;">La Bestia de Blackwood</h1>
+<div class="flex items-center justify-center gap-2 text-ink-light text-sm italic">
+<span class="material-symbols-outlined !text-[16px]">location_on</span>
+<span>Región: Bosque de los Lamentos</span>
+</div>
+</div>
+<!-- Narrative Text -->
+<article class="prose prose-p:text-ink prose-headings:text-ink mb-8">
+<p class="drop-cap text-lg leading-relaxed text-justify text-ink/90 font-serif">
+                            Los aldeanos hablan de una sombra que acecha la linde del bosque. No es un lobo común, dicen; sus ojos arden como brasas de un fuego olvidado y su aullido hiela la sangre incluso de los veteranos más curtidos. El anciano del pueblo, Ealdred, afirma que la criatura es un castigo por profanar el antiguo santuario de piedra. Debo investigar la cresta norte antes del anochecer, pues es allí donde se han encontrado los rastros más recientes.
+                        </p>
+<p class="text-lg leading-relaxed text-justify text-ink/90 font-serif mt-4">
+                            He preparado mis aceites y afilado la plata. Si las leyendas son ciertas, el acero común apenas rasguñará su piel.
+                        </p>
+</article>
+<!-- Objectives / Checklist -->
+<div class="mb-8 pl-2">
+<h3 class="text-xl font-bold text-ink mb-4 border-b border-ink/30 inline-block pb-1">Objetivos</h3>
+<ul class="space-y-4">
+<!-- Completed Objective -->
+<li class="flex items-start gap-3 group">
+<div class="relative mt-1">
+<div class="size-5 border-2 border-ink rounded-sm flex items-center justify-center">
+<span class="material-symbols-outlined text-ink !text-[20px] font-bold">close</span>
+</div>
+</div>
+<span class="text-lg text-ink line-through decoration-ink/60 decoration-2 opacity-70">Hablar con el Anciano Ealdred</span>
+</li>
+<!-- Active Objective -->
+<li class="flex items-start gap-3 group">
+<div class="relative mt-1">
+<div class="size-5 border-2 border-primary rounded-sm bg-paper shadow-inner"></div>
+</div>
+<span class="text-lg text-ink font-semibold">Encontrar el rastro de la bestia</span>
+</li>
+<!-- Pending Objective -->
+<li class="flex items-start gap-3 group opacity-80">
+<div class="relative mt-1">
+<div class="size-5 border-2 border-ink/40 rounded-sm"></div>
+</div>
+<span class="text-lg text-ink/80 italic">Dar caza a la criatura o purificar el santuario</span>
+</li>
+</ul>
+</div>
+<!-- Margin Notes / Rewards -->
+<div class="relative mt-auto pt-6 border-t border-dashed border-ink/30">
+<h4 class="text-sm font-bold text-ink/70 uppercase tracking-widest mb-2">Recompensas Estimadas</h4>
+<div class="flex gap-4">
+<div class="flex flex-col items-center p-2 bg-ink/5 rounded border border-ink/10 w-20">
+<span class="material-symbols-outlined text-primary !text-[24px] mb-1">paid</span>
+<span class="text-xs font-bold text-ink">150 Oro</span>
+</div>
+<div class="flex flex-col items-center p-2 bg-ink/5 rounded border border-ink/10 w-20">
+<span class="material-symbols-outlined text-ink !text-[24px] mb-1">swords</span>
+<span class="text-xs font-bold text-ink">Exp</span>
+</div>
+</div>
+<!-- Handwritten scribble -->
+<div class="absolute right-0 bottom-4 -rotate-2 max-w-[150px] text-right">
+<p class="font-serif italic text-danger text-sm leading-tight">
+                                "¡Cuidado con la luna llena! Sus poderes aumentan."
+                            </p>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+</body></html>

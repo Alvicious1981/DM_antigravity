@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Grimorio de Hechizos Arcanos - DRAGONS AND DUNGEONS</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,100..900;1,100..900&amp;family=Cinzel:wght@400;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#7311d4",
+                        "primary-dark": "#4a0b8a",
+                        "parchment": "#e3dac9",
+                        "parchment-dark": "#d1c7b7",
+                        "ink": "#2c241b",
+                        "ink-light": "#5c5042",
+                        "leather": "#3e2b20",
+                        "leather-dark": "#2a1d15",
+                        "background-light": "#f7f6f8",
+                        "background-dark": "#141118",
+                    },
+                    fontFamily: {
+                        "display": ["Cinzel", "serif"],
+                        "body": ["Noto Serif", "serif"],
+                    },
+                    boxShadow: {
+                        'book': '0 20px 50px -12px rgba(0, 0, 0, 0.9)',
+                        'inner-page': 'inset 0 0 40px rgba(0,0,0,0.1), inset 20px 0 50px rgba(0,0,0,0.2)',
+                        'inner-page-right': 'inset 0 0 40px rgba(0,0,0,0.1), inset -20px 0 50px rgba(0,0,0,0.2)',
+                    },
+                    backgroundImage: {
+                        'parchment-texture': "url('https://www.transparenttextures.com/patterns/aged-paper.png')", 
+                        'leather-texture': "url('https://www.transparenttextures.com/patterns/black-scales.png')"
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom Scrollbar for the spell list to fit the theme */
+        .spell-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .spell-scroll::-webkit-scrollbar-track {
+            background: rgba(44, 36, 27, 0.1); 
+            border-radius: 4px;
+        }
+        .spell-scroll::-webkit-scrollbar-thumb {
+            background: #5c5042; 
+            border-radius: 4px;
+        }
+        .spell-scroll::-webkit-scrollbar-thumb:hover {
+            background: #7311d4; 
+        }
+
+        /* Text selection color */
+        ::selection {
+            background: #7311d4;
+            color: #e3dac9;
+        }
+
+        /* Drop Cap style */
+        .drop-cap {
+            float: left;
+            font-family: 'Cinzel', serif;
+            font-size: 3.5rem;
+            line-height: 0.8;
+            padding-top: 4px;
+            padding-right: 8px;
+            padding-left: 3px;
+            color: #7311d4;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body class="bg-[#0a080c] min-h-screen flex flex-col font-body overflow-hidden selection:bg-primary selection:text-white">
+<!-- Ambient Background / Desk Surface -->
+<div class="fixed inset-0 bg-leather-dark bg-leather-texture opacity-80 z-0 pointer-events-none"></div>
+<div class="fixed inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80 z-0 pointer-events-none"></div>
+<!-- Main Content Wrapper -->
+<div class="relative z-10 flex flex-col h-screen w-full max-w-[1600px] mx-auto p-4 md:p-8 lg:p-10">
+<!-- Header / Navigation Tabs (Sticking out of top of book) -->
+<header class="flex justify-between items-end px-12 mb-[-10px] relative z-20 mx-auto w-full max-w-[1200px]">
+<div class="flex items-center gap-4 text-parchment opacity-70 hover:opacity-100 transition-opacity cursor-pointer">
+<span class="material-symbols-outlined text-3xl">menu_book</span>
+<h1 class="font-display font-bold text-xl tracking-widest hidden md:block text-[#d4c5b0]">GRIMORIO</h1>
+</div>
+<nav class="flex gap-2">
+<a class="bg-[#2a1d15] text-[#d4c5b0] px-6 py-2 rounded-t-lg border-t border-x border-[#3e2b20] font-display text-sm font-bold tracking-wider hover:bg-[#3e2b20] transition-colors shadow-lg translate-y-2 hover:translate-y-0 relative z-10" href="#">DIARIO</a>
+<a class="bg-primary text-white px-6 py-3 rounded-t-lg border-t border-x border-primary-dark font-display text-sm font-bold tracking-wider shadow-[0_0_15px_rgba(115,17,212,0.5)] z-20 relative" href="#">GRIMORIO</a>
+<a class="bg-[#2a1d15] text-[#d4c5b0] px-6 py-2 rounded-t-lg border-t border-x border-[#3e2b20] font-display text-sm font-bold tracking-wider hover:bg-[#3e2b20] transition-colors shadow-lg translate-y-2 hover:translate-y-0 relative z-10" href="#">PERSONAJE</a>
+<a class="bg-[#2a1d15] text-[#d4c5b0] px-6 py-2 rounded-t-lg border-t border-x border-[#3e2b20] font-display text-sm font-bold tracking-wider hover:bg-[#3e2b20] transition-colors shadow-lg translate-y-2 hover:translate-y-0 relative z-10" href="#">INVENTARIO</a>
+</nav>
+<div class="w-24"></div> <!-- Spacer for balance -->
+</header>
+<!-- The Book Container -->
+<div class="flex-1 relative flex justify-center items-center perspective-1000">
+<div class="relative flex w-full max-w-[1200px] aspect-[1.4/1] bg-[#1a120b] rounded-lg shadow-book border-8 border-[#2a1d15] overflow-hidden">
+<!-- Center Binding/Spine Shadow Overlay -->
+<div class="absolute left-1/2 top-0 bottom-0 w-16 -ml-8 bg-gradient-to-r from-black/40 via-black/10 to-black/40 z-30 pointer-events-none mix-blend-multiply"></div>
+<div class="absolute left-1/2 top-0 bottom-0 w-[1px] bg-[#1a0f05] z-40 opacity-50"></div>
+<!-- Left Page -->
+<div class="flex-1 bg-parchment bg-parchment-texture relative p-8 md:p-12 shadow-inner-page flex flex-col border-r border-[#d1c7b7]">
+<!-- Page Decorations -->
+<div class="absolute top-4 left-4 right-12 h-px bg-ink opacity-10"></div>
+<div class="absolute bottom-4 left-4 right-12 h-px bg-ink opacity-10"></div>
+<!-- Bookmark Tabs (Spell Levels) -->
+<div class="absolute -left-3 top-20 flex flex-col gap-3 z-50">
+<button class="w-10 h-14 bg-primary text-white font-display font-bold text-xs flex items-center justify-center rounded-l-md shadow-md hover:w-12 transition-all border-r border-black/20 group relative overflow-hidden">
+<span class="rotate-[-90deg]">I</span>
+<div class="absolute inset-0 bg-gradient-to-b from-white/10 to-black/10 pointer-events-none"></div>
+</button>
+<button class="w-8 h-12 bg-[#5c5042] text-[#d4c5b0] font-display font-bold text-xs flex items-center justify-center rounded-l-md shadow-md hover:w-12 hover:bg-[#3e2b20] transition-all border-r border-black/20 group relative overflow-hidden">
+<span class="rotate-[-90deg]">II</span>
+<div class="absolute inset-0 bg-gradient-to-b from-white/5 to-black/20 pointer-events-none"></div>
+</button>
+<button class="w-8 h-12 bg-[#5c5042] text-[#d4c5b0] font-display font-bold text-xs flex items-center justify-center rounded-l-md shadow-md hover:w-12 hover:bg-[#3e2b20] transition-all border-r border-black/20 group relative overflow-hidden">
+<span class="rotate-[-90deg]">III</span>
+<div class="absolute inset-0 bg-gradient-to-b from-white/5 to-black/20 pointer-events-none"></div>
+</button>
+<button class="w-8 h-12 bg-[#5c5042] text-[#d4c5b0] font-display font-bold text-xs flex items-center justify-center rounded-l-md shadow-md hover:w-12 hover:bg-[#3e2b20] transition-all border-r border-black/20 group relative overflow-hidden">
+<span class="rotate-[-90deg]">IV</span>
+<div class="absolute inset-0 bg-gradient-to-b from-white/5 to-black/20 pointer-events-none"></div>
+</button>
+</div>
+<!-- Header: Spell Levels -->
+<div class="mb-6 flex flex-col items-center border-b-2 border-ink border-opacity-20 pb-4">
+<h2 class="font-display text-3xl text-ink font-bold tracking-widest uppercase">Círculo I</h2>
+<span class="text-ink-light italic text-sm font-serif mt-1">Hechizos Conocidos</span>
+<div class="w-16 h-1 bg-primary mt-2 rounded-full opacity-60"></div>
+</div>
+<!-- Spell List -->
+<div class="spell-scroll overflow-y-auto pr-4 flex-1 space-y-3">
+<!-- Selected Spell Item -->
+<div class="group flex items-center gap-4 p-3 rounded-lg bg-ink/5 border border-primary/30 cursor-pointer relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
+<div class="w-10 h-10 rounded-full border border-ink/20 flex items-center justify-center bg-parchment shadow-sm group-hover:border-primary transition-colors">
+<span class="material-symbols-outlined text-primary text-xl">skull</span>
+</div>
+<div class="flex-1">
+<h3 class="font-display font-bold text-lg text-ink group-hover:text-primary transition-colors">Rayo Necrótico</h3>
+<p class="text-xs text-ink-light italic">Necromancia • Truco</p>
+</div>
+<span class="material-symbols-outlined text-primary/50 text-lg">ink_highlighter</span>
+</div>
+<!-- Spell Item -->
+<div class="group flex items-center gap-4 p-3 rounded-lg hover:bg-ink/5 border border-transparent hover:border-ink/10 cursor-pointer transition-all">
+<div class="w-10 h-10 rounded-full border border-ink/20 flex items-center justify-center bg-parchment shadow-sm group-hover:border-ink/40 transition-colors">
+<span class="material-symbols-outlined text-ink text-xl">local_fire_department</span>
+</div>
+<div class="flex-1">
+<h3 class="font-display font-bold text-lg text-ink group-hover:text-ink-light transition-colors">Bola de Fuego</h3>
+<p class="text-xs text-ink-light italic">Evocación • Nivel 3</p>
+</div>
+</div>
+<!-- Spell Item -->
+<div class="group flex items-center gap-4 p-3 rounded-lg hover:bg-ink/5 border border-transparent hover:border-ink/10 cursor-pointer transition-all">
+<div class="w-10 h-10 rounded-full border border-ink/20 flex items-center justify-center bg-parchment shadow-sm group-hover:border-ink/40 transition-colors">
+<span class="material-symbols-outlined text-ink text-xl">shield</span>
+</div>
+<div class="flex-1">
+<h3 class="font-display font-bold text-lg text-ink group-hover:text-ink-light transition-colors">Armadura de Mago</h3>
+<p class="text-xs text-ink-light italic">Abjuración • Nivel 1</p>
+</div>
+</div>
+<!-- Spell Item -->
+<div class="group flex items-center gap-4 p-3 rounded-lg hover:bg-ink/5 border border-transparent hover:border-ink/10 cursor-pointer transition-all">
+<div class="w-10 h-10 rounded-full border border-ink/20 flex items-center justify-center bg-parchment shadow-sm group-hover:border-ink/40 transition-colors">
+<span class="material-symbols-outlined text-ink text-xl">visibility</span>
+</div>
+<div class="flex-1">
+<h3 class="font-display font-bold text-lg text-ink group-hover:text-ink-light transition-colors">Identificar</h3>
+<p class="text-xs text-ink-light italic">Adivinación • Nivel 1</p>
+</div>
+</div>
+<!-- Spell Item -->
+<div class="group flex items-center gap-4 p-3 rounded-lg hover:bg-ink/5 border border-transparent hover:border-ink/10 cursor-pointer transition-all">
+<div class="w-10 h-10 rounded-full border border-ink/20 flex items-center justify-center bg-parchment shadow-sm group-hover:border-ink/40 transition-colors">
+<span class="material-symbols-outlined text-ink text-xl">auto_fix_high</span>
+</div>
+<div class="flex-1">
+<h3 class="font-display font-bold text-lg text-ink group-hover:text-ink-light transition-colors">Proyectil Mágico</h3>
+<p class="text-xs text-ink-light italic">Evocación • Nivel 1</p>
+</div>
+</div>
+</div>
+<div class="mt-4 flex justify-center opacity-40">
+<span class="material-symbols-outlined text-ink text-2xl animate-bounce">more_horiz</span>
+</div>
+</div>
+<!-- Right Page -->
+<div class="flex-1 bg-parchment bg-parchment-texture relative p-8 md:p-12 shadow-inner-page-right flex flex-col">
+<!-- Page Decorations -->
+<div class="absolute top-4 left-12 right-4 h-px bg-ink opacity-10"></div>
+<div class="absolute bottom-4 left-12 right-4 h-px bg-ink opacity-10"></div>
+<!-- Spell Detail Header -->
+<div class="flex justify-between items-start mb-6">
+<div class="flex flex-col">
+<h2 class="font-display text-4xl text-ink font-black tracking-tight leading-none mb-1">Rayo Necrótico</h2>
+<span class="font-display text-sm text-primary font-bold tracking-[0.2em] uppercase">Necromancia</span>
+</div>
+<div class="w-12 h-12 border-2 border-ink rounded-full flex items-center justify-center opacity-80 rotate-12">
+<span class="font-display font-bold text-xl text-ink">I</span>
+</div>
+</div>
+<!-- Spell Illustration Area -->
+<div class="relative w-full aspect-video mb-6 border-2 border-ink/80 rounded-sm overflow-hidden shadow-sm group">
+<div class="absolute inset-0 bg-[#e3dac9] opacity-20 mix-blend-multiply z-10"></div>
+<img alt="Detailed ink drawing of a skeletal hand emitting dark energy" class="w-full h-full object-cover sepia-[.7] contrast-125 brightness-90 grayscale-[0.5] group-hover:scale-105 transition-transform duration-1000" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDMrMCJb3NQNfBBJ317MNTBceS8SBgLqWIUEjTrhz5AVGrMDO_ZmQJ05I0OuuY1ajCq752BtJq3O7iNzddW8rz88NGp2EqtRyPY981naprQARZjmcHwlD8j4IMdn84ClLkBqy8Yfp8L33a4dqTB2wXSkkCFO7x1QZ_ckKcBz5pRUtVa63Vy7Ld_YNxwFbvburaIR6gBi_S6Lcv-FvpKPIOcNRfg9C94m0dSbVO7ZdFdQ9s6lFmnfAoORCoxMUkP6TPuh7JApS3t0g"/>
+<!-- Corner Decorations -->
+<div class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-ink z-20"></div>
+<div class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-ink z-20"></div>
+</div>
+<!-- Spell Description -->
+<div class="prose prose-stone prose-sm max-w-none text-ink leading-relaxed font-serif relative">
+<!-- Margin Note -->
+<div class="absolute -right-8 top-0 w-24 transform rotate-2 hidden lg:block">
+<p class="font-handwriting text-xs text-primary font-bold border-l-2 border-primary pl-2 opacity-80 italic">
+                                ¡No usar en no-muertos!
+                            </p>
+</div>
+<p>
+<span class="drop-cap">U</span>n haz de energía verdosa crepita hacia una criatura dentro del alcance. Haz un ataque de hechizo a distancia contra el objetivo. Si impactas, el objetivo recibe 1d8 de daño necrótico.
+                        </p>
+<p class="mt-2 indent-4">
+                            La energía entropa la carne y marchita el espíritu. El daño de este hechizo aumenta en 1d8 cuando alcanzas el nivel 5 (2d8), el nivel 11 (3d8) y el nivel 17 (4d8).
+                        </p>
+</div>
+<!-- Divider -->
+<div class="w-full h-px bg-gradient-to-r from-transparent via-ink/40 to-transparent my-6"></div>
+<!-- Stats Grid -->
+<div class="grid grid-cols-2 gap-4 mb-auto">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-ink-light text-lg">hourglass_top</span>
+<div class="flex flex-col">
+<span class="text-[10px] uppercase tracking-widest text-ink-light font-bold">Tiempo</span>
+<span class="text-ink font-bold text-sm">1 Acción</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-ink-light text-lg">arrow_range</span>
+<div class="flex flex-col">
+<span class="text-[10px] uppercase tracking-widest text-ink-light font-bold">Alcance</span>
+<span class="text-ink font-bold text-sm">120 Pies</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-ink-light text-lg">diamond</span>
+<div class="flex flex-col">
+<span class="text-[10px] uppercase tracking-widest text-ink-light font-bold">Componentes</span>
+<span class="text-ink font-bold text-sm">V, S</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-ink-light text-lg">history_edu</span>
+<div class="flex flex-col">
+<span class="text-[10px] uppercase tracking-widest text-ink-light font-bold">Duración</span>
+<span class="text-ink font-bold text-sm">Instantánea</span>
+</div>
+</div>
+</div>
+<!-- Action Button -->
+<div class="flex justify-end mt-4">
+<button class="relative group cursor-pointer overflow-hidden rounded-full p-[2px] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-[#e3dac9]">
+<span class="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#E2CBFF_0%,#393BB2_50%,#E2CBFF_100%)] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+<div class="relative flex items-center justify-center gap-2 bg-gradient-to-br from-primary to-primary-dark px-8 py-3 rounded-full text-white shadow-lg group-hover:shadow-[0_0_25px_rgba(115,17,212,0.6)] transition-all duration-300 transform group-hover:-translate-y-1">
+<span class="material-symbols-outlined animate-pulse">auto_awesome</span>
+<span class="font-display font-bold tracking-[0.15em] text-sm">LANZAR HECHIZO</span>
+</div>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer Info -->
+<footer class="text-center mt-4 opacity-40 hover:opacity-100 transition-opacity z-20">
+<p class="text-[#d4c5b0] text-xs font-serif italic">Presiona 'ESC' para cerrar el grimorio • Último guardado: Hace 5 minutos</p>
+</footer>
+</div>
+</body></html>

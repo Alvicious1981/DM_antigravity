@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, UserPlus, Shield, Heart, Fingerprint, Target, MessageSquare } from 'lucide-react';
+import { Users, UserPlus, Shield, Heart, Fingerprint, Target, MessageSquare, ShoppingBag } from 'lucide-react';
+import { ShopInventory } from '../hooks/useAgentState';
 
 export interface NPC {
     id: string;
@@ -25,9 +26,11 @@ interface NodePanelProps {
     nodeId: string;
     nodeName: string;
     onClose: () => void;
+    shopInventory?: ShopInventory | null;
+    onOpenShop?: () => void;
 }
 
-export default function NodePanel({ nodeId, nodeName, onClose }: NodePanelProps) {
+export default function NodePanel({ nodeId, nodeName, onClose, shopInventory, onOpenShop }: NodePanelProps) {
     const [npcs, setNpcs] = useState<NPC[]>([]);
     const [loading, setLoading] = useState(true);
     const [spawning, setSpawning] = useState(false);
@@ -99,7 +102,35 @@ export default function NodePanel({ nodeId, nodeName, onClose }: NodePanelProps)
             </div>
 
             {/* Footer / Actions */}
-            <div className="p-6 border-t border-stone-800/40 bg-[#141418]">
+            <div className="p-6 border-t border-stone-800/40 bg-[#141418] space-y-3">
+                {/* Shop section */}
+                {onOpenShop && (
+                    <div className="space-y-2">
+                        <button
+                            onClick={onOpenShop}
+                            className="w-full py-3 bg-stone-900 border border-[#c5a059]/30 text-[#c5a059] hover:bg-[#c5a059]/10 transition-all duration-300 rounded flex items-center justify-center gap-3 group"
+                        >
+                            <ShoppingBag className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                            <span className="uppercase tracking-widest text-xs font-bold">
+                                VISIT MERCHANT
+                            </span>
+                        </button>
+                        {shopInventory?.has_shop && shopInventory.items.length > 0 && (
+                            <div className="rounded border border-[#c5a059]/20 bg-[#0f0f12] p-3 space-y-1">
+                                <p className="text-[9px] uppercase tracking-widest text-[#c5a059]/60 font-bold mb-2">Wares Available</p>
+                                {shopInventory.items.map((item, i) => (
+                                    <div key={i} className="flex justify-between items-center text-xs">
+                                        <span className="text-stone-400">{item.rarity}</span>
+                                        <span className="text-[#c5a059] font-bold font-mono">{item.buy_price} gp</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        {shopInventory && !shopInventory.has_shop && (
+                            <p className="text-[10px] text-stone-600 italic text-center">No merchants here.</p>
+                        )}
+                    </div>
+                )}
                 <button
                     onClick={handleSpawn}
                     disabled={spawning}

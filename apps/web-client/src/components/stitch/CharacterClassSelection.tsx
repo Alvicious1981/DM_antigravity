@@ -122,7 +122,7 @@ export function CharacterClassSelection({
 
                     <div className="absolute left-0 right-0 z-20 text-center pointer-events-none bottom-20">
                         <h2 className="text-[120px] font-bold text-white/5 tracking-[0.2em] uppercase leading-none select-none">
-                            Necro
+                            {activeClass.name.slice(0, 5)}
                         </h2>
                     </div>
                 </section>
@@ -165,10 +165,14 @@ export function CharacterClassSelection({
                             </div>
 
                             <div className="flex justify-center gap-2 py-2 overflow-x-auto no-scrollbar mask-gradient">
-                                {classIcons.map(icon => (
+                                {classIcons.map((icon, idx) => (
                                     <div
                                         key={icon.id}
-                                        className={`flex items-center justify-center rounded transition-all cursor-pointer size-10 ${icon.active
+                                        onClick={() => {
+                                            setActiveIndex(idx);
+                                            onSelectClass?.(characterClassesData[idx].id);
+                                        }}
+                                        className={`flex items-center justify-center rounded transition-all cursor-pointer size-10 ${activeIndex === idx
                                             ? 'border border-[#ec1337] bg-[#ec1337]/20 text-white shadow-[0_0_10px_rgba(236,19,55,0.3)]'
                                             : 'border border-[#39282b] bg-[#2a1d20] text-slate-500 hover:border-slate-400'
                                             }`}

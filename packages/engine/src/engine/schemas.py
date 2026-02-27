@@ -36,8 +36,9 @@ class SaveInfo(BaseModel):
 class CharacterCreationRequest(BaseModel):
     name: str
     class_id: str  # e.g. "class_fighter"
-    background_id: str # e.g. "bg_soldier"
-    stats: Optional[dict] = None # {str: 16, dex: 12...} - if None, rolled server-side
+    background_id: str  # e.g. "bg_soldier"
+    race_id: Optional[str] = None  # e.g. "drow", "human"
+    stats: Optional[dict] = None  # {str: 16, dex: 12...} - if None, rolled server-side
 
 
 class GameSession(BaseModel):
@@ -75,11 +76,6 @@ class GenerateLootAction(BaseAction):
     cr: int = 1
     target_character_id: Optional[str] = None
 
-
-class DistributeLootAction(BaseAction):
-    action: Literal["distribute_loot"]
-    item_ids: List[str]
-    target_character_id: str
 
 class SearchMonstersAction(BaseAction):
     action: Literal["search_monsters"]
@@ -179,6 +175,11 @@ class MapInteractionAction(BaseAction):
     interaction_type: str = "travel" # travel, inspect, etc.
 
 
+class NarrativeActionAction(BaseAction):
+    action: Literal["narrative_action"]
+    content: str  # Free-form player intent, routed to Chronos
+
+
 class SaveGameAction(BaseAction):
     action: Literal["save_game"]
     save_id: str = "default"
@@ -215,6 +216,7 @@ GameAction = Union[
     GetSpellsAction,
     DistributeLootAction,
     MapInteractionAction,
+    NarrativeActionAction,
     SaveGameAction,
     LoadGameAction,
     ListSavesAction,
@@ -230,6 +232,7 @@ class BaseEvent(BaseModel):
 class ConnectionEstablishedEvent(BaseEvent):
     type: Literal["CONNECTION_ESTABLISHED"]
     session_id: str
+    character_id: str
     role: str = "player"  # "dm" or "player"
     message: str
 
